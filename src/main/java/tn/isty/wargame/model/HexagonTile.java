@@ -13,7 +13,7 @@ import tn.isty.wargame.controller.GameController;
 
 public class HexagonTile extends StackPane implements Serializable {
     private static final long serialVersionUID = 1L;
-    private static final double SIZE = 40;
+    public static final double SIZE = 40;
 
     // Pour éviter la dépendance statique, mieux vaut passer gameState ou controller via setter
     private static GameState sharedGameState = null; 

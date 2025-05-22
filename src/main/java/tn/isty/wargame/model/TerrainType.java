@@ -6,8 +6,10 @@ public enum TerrainType {
     MONTAGNE(3),
     COLLINE(2),
     FORTERESSE(1),
-    EAU(999);
-
+    EAU(999),
+    DESERT(4),
+    VILLE(5),
+    ILE(6);
     private final int moveCost;
 
     TerrainType(int moveCost) {

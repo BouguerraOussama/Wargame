@@ -116,7 +116,7 @@ public class GameSetup {
         Button button = new Button(name);
         button.setStyle("-fx-font-size: 18px; -fx-background-color: " + bgColor + "; -fx-text-fill: white;");
         button.setOnAction(e -> {
-            Plateau plateau = new Plateau(10, 10);
+            Plateau plateau = new Plateau(14, 33);
             generator.generate(plateau);
 
             List<Player> players = new ArrayList<>();

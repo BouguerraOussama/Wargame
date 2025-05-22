@@ -81,8 +81,8 @@ public class Plateau extends Pane implements Serializable {
     }
 
     private void afficherTerrain() {
-        double hexHeight = tileSize * 2;
-        double hexWidth = Math.sqrt(3) * tileSize;
+        double hexWidth = tileSize * 2;              // largeur (distance horizontale)
+        double hexHeight = Math.sqrt(3) * tileSize; // hauteur (distance verticale)
 
         grille = new HexagonTile[rows][cols];
 
@@ -91,7 +91,7 @@ public class Plateau extends Pane implements Serializable {
                 TerrainType type = terrainGrid[row][col];
                 HexagonTile hex = new HexagonTile(type, row, col);
 
-                double x = col * hexWidth * 0.75;
+                double x = col * (hexWidth * 0.75);
                 double y = row * hexHeight + (col % 2) * (hexHeight / 2);
 
                 hex.setLayoutX(x);
@@ -101,6 +101,7 @@ public class Plateau extends Pane implements Serializable {
             }
         }
     }
+
 
     public HexagonTile getCase(int row, int col) {
         if (row >= 0 && row < rows && col >= 0 && col < cols) {
