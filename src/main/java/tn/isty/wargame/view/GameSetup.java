@@ -16,6 +16,14 @@ import java.util.List;
 
 public class GameSetup {
 
+    // ✅ Zones de départ 5x5 par joueur (ligne, colonne)
+    private static final int[][] ZONES_DEPLACEMENT = {
+            {0, 0},    // Joueur 1
+            {5, 5},    // Joueur 2
+            {0, 5},    // Joueur 3
+            {5, 0}     // Joueur 4
+    };
+
     public static Scene createSetupScene(Stage stage) {
         Label label = new Label("Choisissez le nombre de joueurs");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
@@ -23,8 +31,7 @@ public class GameSetup {
         VBox playerSelectionBox = new VBox(20);
         playerSelectionBox.setAlignment(Pos.CENTER);
 
-        Button[] playerButtons = new Button[3];  // 2 à 4 joueurs
-
+        Button[] playerButtons = new Button[3];
         for (int i = 0; i < 3; i++) {
             int playerCount = i + 2;
             Button btn = new Button(playerCount + " joueurs");
@@ -36,9 +43,8 @@ public class GameSetup {
         playerSelectionBox.getChildren().add(label);
         playerSelectionBox.getChildren().addAll(playerButtons);
 
-        StackPane root = new StackPane();
+        StackPane root = new StackPane(playerSelectionBox);
         root.setBackground(getBackgroundImage());
-        root.getChildren().add(playerSelectionBox);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
@@ -56,9 +62,7 @@ public class GameSetup {
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
         List<Boolean> iaFlags = new ArrayList<>();
-        for (int i = 0; i < numPlayers; i++) {
-            iaFlags.add(false); // par défaut humain
-        }
+        for (int i = 0; i < numPlayers; i++) iaFlags.add(false);
 
         VBox buttonBox = new VBox(10);
         for (int i = 0; i < numPlayers; i++) {
@@ -79,9 +83,8 @@ public class GameSetup {
 
         layout.getChildren().addAll(label, buttonBox, nextButton);
 
-        StackPane root = new StackPane();
+        StackPane root = new StackPane(layout);
         root.setBackground(getBackgroundImage());
-        root.getChildren().add(layout);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
@@ -101,9 +104,8 @@ public class GameSetup {
 
         terrainBox.getChildren().addAll(label, cityButton, islandButton);
 
-        StackPane root = new StackPane();
+        StackPane root = new StackPane(terrainBox);
         root.setBackground(getBackgroundImage());
-        root.getChildren().add(terrainBox);
 
         Scene scene = new Scene(root);
         stage.setScene(scene);
@@ -124,82 +126,147 @@ public class GameSetup {
                 players.add(new Player("Joueur " + (i + 1), iaFlags.get(i)));
             }
 
-            GameState gameState = new GameState(players, plateau);
-            gameState.initializeGame();
-            HexagonTile.setSharedGameState(gameState);
-
-            // Exemple : chaque joueur commence avec une unité (A ou T)
-            for (int i = 0; i < players.size(); i++) {
-                Player p = players.get(i);
-                Unit u = (i % 2 == 0)
-                        ? new Unit("A", "archer", 20, 5, 2, 3, 3, p)
-                        : new Unit("T", "tank", 30, 4, 6, 2, 2, p);
-                p.addUnit(u);
-                placerUniteDansZoneValide(plateau, u, i);
-            }
-
-            GameController controller = new GameController(gameState);
-
-            Button endTurnButton = new Button("Fin de tour");
-            endTurnButton.setLayoutX(20);
-            endTurnButton.setLayoutY(20);
-            endTurnButton.setStyle("-fx-font-size: 16px;");
-            endTurnButton.setOnAction(ev -> controller.endTurn());
-
-            Button saveButton = new Button("Sauvegarder");
-            saveButton.setLayoutX(140);
-            saveButton.setLayoutY(20);
-            saveButton.setStyle("-fx-font-size: 16px;");
-            saveButton.setOnAction(ev -> SaveManager.sauvegarder(gameState, "savegame.ser"));
-
-            Button returnButton = new Button("Retour Menu");
-            returnButton.setLayoutX(280);
-            returnButton.setLayoutY(20);
-            returnButton.setStyle("-fx-font-size: 16px;");
-            returnButton.setOnAction(ev -> GameMenu.createMenuScene(stage));
-
-            plateau.getChildren().addAll(endTurnButton, saveButton, returnButton);
-
-            Scene gameScene = new Scene(plateau, 1280, 800);
-            stage.setScene(gameScene);
-            stage.setTitle("Wargame - Partie");
+            showArmyChoice(stage, players, plateau);
         });
 
         return button;
     }
 
-    // 🔁 Nouvelle méthode de placement intelligent
-    private static void placerUniteDansZoneValide(Plateau plateau, Unit unite, int playerIndex) {
-        int rows = plateau.getRows();
-        int cols = plateau.getCols();
+    private static void showArmyChoice(Stage stage, List<Player> players, Plateau plateau) {
+        VBox layout = new VBox(20);
+        layout.setAlignment(Pos.CENTER);
 
-        int[][] zones = {
-                {1, 1},                  // Joueur 1
-                {rows - 2, cols - 2},    // Joueur 2
-                {1, cols - 2},           // Joueur 3
-                {rows - 2, 1}            // Joueur 4
-        };
+        Label label = new Label("Sélectionnez l’armée pour chaque joueur");
+        label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        int baseRow = zones[playerIndex][0];
-        int baseCol = zones[playerIndex][1];
+        VBox playerSelectors = new VBox(10);
 
-        for (int rOffset = -1; rOffset <= 1; rOffset++) {
-            for (int cOffset = -1; cOffset <= 1; cOffset++) {
-                int row = baseRow + rOffset;
-                int col = baseCol + cOffset;
+        for (Player player : players) {
+            if (player.isAI()) {
+                player.setArmyType(ArmyType.ALLEMAGNE); // par défaut
+                continue;
+            }
+
+            Label playerLabel = new Label(player.getName() + " : ");
+            playerLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: white;");
+
+            HBox buttons = new HBox(10);
+            buttons.setAlignment(Pos.CENTER);
+
+            for (ArmyType type : ArmyType.values()) {
+                Button btn = new Button(type.name());
+                btn.setOnAction(e -> {
+                    player.setArmyType(type);
+                    System.out.println(player.getName() + " a choisi " + type.name());
+                    btn.setDisable(true);
+                });
+                buttons.getChildren().add(btn);
+            }
+
+            VBox box = new VBox(5, playerLabel, buttons);
+            box.setAlignment(Pos.CENTER);
+            playerSelectors.getChildren().add(box);
+        }
+
+        Button launchBtn = new Button("Lancer la partie");
+        launchBtn.setStyle("-fx-font-size: 18px; -fx-background-color: #222; -fx-text-fill: white;");
+        launchBtn.setOnAction(e -> {
+            boolean allChosen = players.stream()
+                    .filter(p -> !p.isAI())
+                    .allMatch(p -> p.getArmyType() != null);
+            if (!allChosen) {
+                System.out.println("❗ Tous les joueurs humains doivent choisir une armée !");
+                return;
+            }
+
+            launchGame(stage, players, plateau);
+        });
+
+        layout.getChildren().addAll(label, playerSelectors, launchBtn);
+
+        StackPane root = new StackPane(layout);
+        root.setBackground(getBackgroundImage());
+
+        Scene scene = new Scene(root);
+        stage.setScene(scene);
+        stage.setMaximized(true);
+    }
+
+    private static void launchGame(Stage stage, List<Player> players, Plateau plateau) {
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            ArmyFactory factory = ArmyFactoryProvider.getFactory(player.getArmyType());
+            List<Unit> units = factory.createArmy(player);
+            for (Unit unit : units) player.addUnit(unit);
+
+            placerUnitesPourJoueur(player, plateau, i);
+        }
+
+        GameState gameState = new GameState(players, plateau);
+        gameState.initializeGame();
+        HexagonTile.setSharedGameState(gameState);
+
+        GameController controller = new GameController(gameState);
+
+        Button endTurnButton = new Button("Fin de tour");
+        endTurnButton.setLayoutX(20);
+        endTurnButton.setLayoutY(20);
+        endTurnButton.setStyle("-fx-font-size: 16px;");
+        endTurnButton.setOnAction(ev -> controller.endTurn());
+
+        Button saveButton = new Button("Sauvegarder");
+        saveButton.setLayoutX(140);
+        saveButton.setLayoutY(20);
+        saveButton.setStyle("-fx-font-size: 16px;");
+        saveButton.setOnAction(ev -> SaveManager.sauvegarder(gameState, "savegame.ser"));
+
+        Button returnButton = new Button("Retour Menu");
+        returnButton.setLayoutX(280);
+        returnButton.setLayoutY(20);
+        returnButton.setStyle("-fx-font-size: 16px;");
+        returnButton.setOnAction(ev -> GameMenu.createMenuScene(stage));
+
+        plateau.getChildren().addAll(endTurnButton, saveButton, returnButton);
+
+        Scene gameScene = new Scene(plateau, 1280, 800);
+        stage.setScene(gameScene);
+        stage.setTitle("Wargame - Partie");
+        controller.playTurn();
+    }
+
+    private static void placerUnitesPourJoueur(Player joueur, Plateau plateau, int playerIndex) {
+        if (playerIndex >= ZONES_DEPLACEMENT.length) {
+            System.err.println("❌ Trop de joueurs pour les zones prédéfinies !");
+            return;
+        }
+
+        List<Unit> unites = joueur.getUnits();
+        int baseRow = ZONES_DEPLACEMENT[playerIndex][0];
+        int baseCol = ZONES_DEPLACEMENT[playerIndex][1];
+        int endRow = Math.min(baseRow + 5, plateau.getRows());
+        int endCol = Math.min(baseCol + 5, plateau.getCols());
+
+        int unitIndex = 0;
+
+        for (int row = baseRow; row < endRow; row++) {
+            for (int col = baseCol; col < endCol; col++) {
+                if (unitIndex >= unites.size()) return;
+                if (row >= plateau.getRows() || col >= plateau.getCols()) continue;
+
                 HexagonTile tile = plateau.getCase(row, col);
+                if (tile == null || tile.getUnit() != null) continue;
 
-                if (tile != null && tile.getUnit() == null) {
-                    TerrainType t = tile.getTerrainType();
-                    if (t == TerrainType.PLAINE || t == TerrainType.FORET || t == TerrainType.COLLINE) {
-                        plateau.placerUnite(row, col, unite);
-                        return;
-                    }
+                TerrainType terrain = tile.getTerrainType();
+                if (terrain == TerrainType.PLAINE || terrain == TerrainType.FORET || terrain == TerrainType.COLLINE) {
+                    plateau.placerUnite(row, col, unites.get(unitIndex));
+                    unitIndex++;
                 }
             }
         }
 
-        System.err.println("⚠️ Impossible de placer l’unité de " + unite.getOwner().getName());
+        if (unitIndex < unites.size()) {
+            System.err.println("⚠️ Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
+        }
     }
 
     private static Background getBackgroundImage() {

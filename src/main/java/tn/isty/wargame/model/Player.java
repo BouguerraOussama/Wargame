@@ -4,10 +4,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Player implements Serializable{
+public class Player implements Serializable {
     private String name;
     private List<Unit> units;
     private boolean isAI;
+    private ArmyType armyType; // ✅ pour gérer les armées personnalisées
 
     public Player(String name, boolean isAI) {
         this.name = name;
@@ -21,6 +22,18 @@ public class Player implements Serializable{
 
     public List<Unit> getUnits() {
         return units;
+    }
+
+    public boolean isAI() {
+        return isAI;
+    }
+
+    public ArmyType getArmyType() {
+        return armyType;
+    }
+
+    public void setArmyType(ArmyType armyType) { // ✅ méthode à ajouter
+        this.armyType = armyType;
     }
 
     public void addUnit(Unit unit) {
@@ -39,8 +52,5 @@ public class Player implements Serializable{
         for (Unit unit : units) {
             unit.resetMovement();
         }
-    }
-    public boolean isAI() {
-        return isAI;
     }
 }
