@@ -12,11 +12,11 @@ public class FrenchArmy extends Army {
     @Override
     public List<Unit> createUnits(Player player) {
         List<Unit> units = new ArrayList<>();
-        units.add(new Unit("F-Inf", "Infanterie", 30, 6, 3, 3, 3, player));
-        units.add(new Unit("F-Tank", "Char FT", 35, 8, 4, 2, 2, player));
-        units.add(new Unit("F-Art", "Artillerie", 20, 10, 2, 1, 4, player));
-        units.add(new Unit("F-Sniper", "Tireur", 25, 9, 1, 2, 4, player));
-        units.add(new Unit("F-Officier", "Commandant", 28, 5, 3, 3, 3, player));
+        units.add(new Unit("F-Inf", "Infanterie", 30, 6, 3, 3, 3, 5, player));
+        units.add(new Unit("F-Tank", "Char FT", 35, 8, 4, 2, 2, 4, player));
+        units.add(new Unit("F-Art", "Artillerie", 20, 10, 2, 1, 4, 3, player));
+        units.add(new Unit("F-Sniper", "Tireur", 25, 9, 1, 2, 4, 3, player));
+        units.add(new Unit("F-Officier", "Commandant", 28, 5, 3, 3, 3, 4, player));
         return units;
     }
 }
