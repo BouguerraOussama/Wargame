@@ -4,8 +4,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import tn.isty.wargame.util.UIUtils;
 
@@ -42,21 +43,21 @@ public class TutorialScreen {
 
         rules.setStyle("-fx-font-size: 16px; -fx-text-fill: white;");
         rules.setWrapText(true);
-        rules.setMaxWidth(700);
+        rules.setMaxWidth(800);
 
         Button backButton = UIUtils.createMenuButton("⬅ Retour au menu");
-        backButton.setOnAction(e -> {
-            Scene menuScene = GameMenu.createMenuScene(stage);
-            UIUtils.setSceneWithShake(stage, menuScene);
-        });
+        backButton.setOnAction(e -> UIUtils.showScene(stage, GameMenu.createMenuScene(stage)));
 
         VBox layout = new VBox(25, title, rules, backButton);
         layout.setAlignment(Pos.CENTER);
 
-        StackPane root = new StackPane(layout);
-        root.setBackground(UIUtils.getBackgroundImage());
+        Rectangle overlay = new Rectangle();
+        overlay.setFill(Color.rgb(0, 0, 0, 0.7));
+        overlay.widthProperty().bind(stage.widthProperty());
+        overlay.heightProperty().bind(stage.heightProperty());
 
-        Scene scene = new Scene(root, 1280, 800);
-        UIUtils.setSceneWithShake(stage, scene);
+        StackPane root = new StackPane(UIUtils.getBackgroundImagePane(), overlay, layout);
+        Scene scene = new Scene(root);
+        UIUtils.showScene(stage, scene);
     }
 }

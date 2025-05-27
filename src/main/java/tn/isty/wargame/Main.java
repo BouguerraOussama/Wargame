@@ -8,6 +8,8 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Wargame - Menu Principal");
+        primaryStage.setFullScreen(true);
+        primaryStage.setFullScreenExitHint("");
         primaryStage.setScene(GameMenu.createMenuScene(primaryStage)); // ⬅️ récupère la scène
         primaryStage.show(); // ⬅️ affiche la fenêtre
     }

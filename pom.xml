@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -24,6 +23,13 @@
             <version>${javafx.version}</version>
         </dependency>
 
+        <!--  JavaFX Media (pour AudioClip) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
         <!-- ✅ JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -41,6 +47,7 @@
                     <include>**/*.jpg</include>
                     <include>**/*.png</include>
                     <include>**/*.gif</include>
+                    <include>**/*.wav</include> <!-- au cas où tu as des sons -->
                 </includes>
             </resource>
         </resources>
@@ -52,6 +59,10 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>tn.isty.wargame.Main</mainClass>
+                    <modules>
+                        <module>javafx.controls</module>
+                        <module>javafx.media</module>
+                    </modules>
                 </configuration>
             </plugin>
 
