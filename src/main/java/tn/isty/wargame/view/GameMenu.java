@@ -26,14 +26,14 @@ public class GameMenu {
         // 🎧 Musique d’ambiance
         if (ambiance == null) {
             try {
-                URL audioUrl = GameMenu.class.getResource("/audio/front_ww1.mp3");
+                URL audioUrl = GameMenu.class.getResource("/audio/front_ww1.wav");
                 if (audioUrl != null) {
                     ambiance = new AudioClip(audioUrl.toExternalForm());
                     ambiance.setCycleCount(AudioClip.INDEFINITE);
                     ambiance.play();
                     System.out.println("🎵 Musique d’ambiance lancée !");
                 } else {
-                    System.err.println("❌ Fichier audio introuvable : /audio/front_ww1.mp3");
+                    System.err.println("❌ Fichier audio introuvable : /audio/front_ww1.wav");
                 }
             } catch (Exception e) {
                 System.err.println("❌ Erreur chargement audio : " + e.getMessage());

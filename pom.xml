@@ -47,7 +47,7 @@
                     <include>**/*.jpg</include>
                     <include>**/*.png</include>
                     <include>**/*.gif</include>
-                    <include>**/*.mp3</include> <!-- au cas où tu as des sons -->
+                    <include>**/*.wav</include> <!-- au cas où tu as des sons -->
                 </includes>
             </resource>
         </resources>
