@@ -188,26 +188,28 @@ public class Plateau extends Pane implements Serializable {
 
         return neighbors;
     }
-
+    
     public boolean isVisible(HexagonTile tile) {
         if (tile == null) return false;
 
         GameState gameState = HexagonTile.getSharedGameState();
         if (gameState == null) return false;
 
-        Player currentPlayer = gameState.getCurrentPlayer();
-        for (Player p : gameState.getAllPlayers()) {
-            for (Unit unit : p.getUnits()) {
-                if (unit.getOwner().equals(currentPlayer)) {
-                    HexagonTile pos = unit.getPosition();
-                    if (pos != null && calculerDistance(pos, tile) <= unit.getVisionRange()) {
-                        return true;
-                    }
-                }
+        Player current = gameState.getCurrentPlayer();
+        if (current == null) return false;
+
+        for (Unit unit : current.getUnits()) {
+            HexagonTile position = unit.getPosition();
+            if (position != null && calculerDistance(position, tile) <= unit.getVisionRange()) {
+                return true;
             }
         }
+
         return false;
     }
+
+
+
 
     private int calculerDistance(HexagonTile a, HexagonTile b) {
         int colA = a.getCol();
@@ -225,4 +227,16 @@ public class Plateau extends Pane implements Serializable {
     public TerrainType getTerrain(int row, int col) {
         return terrainGrid[row][col];
     }
+
+    public void updateAllTiles() {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                HexagonTile tile = grille[row][col];
+                if (tile != null) {
+                    tile.updateDisplay();
+                }
+            }
+        }
+    }
+
 }

@@ -1,14 +1,14 @@
 package tn.isty.wargame.controller;
 
-import tn.isty.wargame.model.GameState;
-import tn.isty.wargame.model.HexagonTile;
-import tn.isty.wargame.model.Plateau;
-import tn.isty.wargame.model.Player;
-import tn.isty.wargame.model.TerrainType;
-import tn.isty.wargame.model.Unit;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
+import javafx.util.Duration;
+import tn.isty.wargame.model.*;
 import tn.isty.wargame.view.Logger;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 public class GameController {
 
@@ -21,17 +21,17 @@ public class GameController {
     public void startGame() {
         Logger.log("🎮 Démarrage de la partie !");
         gameState.initializeGame();
+        HexagonTile.setSharedGameState(gameState);
         playTurn();
     }
 
     public void playTurn() {
         Player current = gameState.getCurrentPlayer();
+        HexagonTile.setSharedGameState(gameState);
         Logger.log("🔁 Tour du joueur : " + current.getName());
         gameState.getBoard().refreshVisibility();
 
-        for (Unit unit : current.getUnits()) {
-            unit.setHasActed(false); // réinitialisation en début de tour
-        }
+        current.getUnits().forEach(unit -> unit.setHasActed(false));
 
         if (current.isAI()) {
             playAITurn(current);
@@ -41,9 +41,9 @@ public class GameController {
     }
 
     public void endTurn() {
-        Player currentPlayer = gameState.getCurrentPlayer();
+        Player current = gameState.getCurrentPlayer();
 
-        for (Unit unit : currentPlayer.getUnits()) {
+        for (Unit unit : current.getUnits()) {
             if (unit.isAlive() && !unit.hasActed()) {
                 unit.recoverHealthIfIdle();
                 Logger.log("🔧 " + unit.getName() + " récupère des PV (repos)");
@@ -68,6 +68,7 @@ public class GameController {
             gameState.moveUnit(unit, destination);
             unit.setHasActed(true);
             Logger.log(unit.getName() + " s’est déplacé en " + destination.getRow() + "," + destination.getCol());
+            gameState.getBoard().updateAllTiles(); // 🔄 Met à jour l’affichage
         } else {
             Logger.log("❌ Déplacement non autorisé");
         }
@@ -81,96 +82,80 @@ public class GameController {
             gameState.resolveCombat(attacker, defender);
             attacker.setHasActed(true);
             Logger.log(attacker.getName() + " attaque " + defender.getName());
+            gameState.getBoard().updateAllTiles(); // 🔄
         } else {
             Logger.log("❌ Attaque non autorisée");
         }
     }
 
     public void playAITurn(Player aiPlayer) {
-        Logger.log("🤖 Tour de l’IA : " + aiPlayer.getName());
+        Logger.log("🤖 Tour IA : " + aiPlayer.getName());
 
-        for (Unit aiUnit : aiPlayer.getUnits()) {
-            if (!aiUnit.isAlive()) continue;
+        List<Unit> units = aiPlayer.getUnits().stream()
+                .filter(u -> u.isAlive() && !u.hasActed())
+                .toList();
 
-            // 1. Essayer d'attaquer une unité ennemie
-            for (Player opponent : gameState.getAllPlayers()) {
-                if (opponent == aiPlayer) continue;
-
-                for (Unit target : opponent.getUnits()) {
-                    if (!target.isAlive()) continue;
-
-                    if (gameState.canAttack(aiUnit, target)) {
-                        Logger.log("🤖 IA attaque avec " + aiUnit.getName() + " -> " + target.getName());
-                        attack(aiUnit, target);
-                        return; // Une action par tour
-                    }
-                }
-            }
-
-            // 2. Trouver l’ennemi vivant le plus proche
-            Unit closest = null;
-            int minDist = Integer.MAX_VALUE;
-            for (Player opponent : gameState.getAllPlayers()) {
-                if (opponent == aiPlayer) continue;
-                for (Unit enemy : opponent.getUnits()) {
-                    if (!enemy.isAlive()) continue;
-
-                    int dist = gameState.calculateHexDistance(aiUnit.getPosition(), enemy.getPosition());
-                    if (dist < minDist) {
-                        minDist = dist;
-                        closest = enemy;
-                    }
-                }
-            }
-
-            // 3. Se déplacer vers la cible
-            if (closest != null) {
-                HexagonTile from = aiUnit.getPosition();
-                HexagonTile to = findStepToward(from, closest.getPosition(), aiUnit);
-
-                if (to != null && gameState.canMove(aiUnit, to)) {
-                    TerrainType terrain = to.getTerrainType();
-                    if (terrain.getMoveCost() >= 999) {
-                        Logger.log("🌊 IA évite terrain interdit (eau)");
-                        continue;
-                    }
-
-                    Logger.log("🤖 IA déplace " + aiUnit.getName() + " vers " + to.getRow() + "," + to.getCol());
-                    moveUnit(aiUnit, to);
-                    return; // Une action par tour
-                }
-            }
-
-            // 4. Si rien à faire
-            Logger.log("🤖 " + aiUnit.getName() + " reste sur place.");
-        }
-
-        endTurn(); // ➡️ Fin du tour IA
+        playNextAIAction(units, 0);
     }
 
-    /**
-     * Trouve une tuile adjacente qui rapproche de la cible (bête mais meilleure que random).
-     */
-    private HexagonTile findStepToward(HexagonTile from, HexagonTile to, Unit unit) {
-        List<HexagonTile> neighbors = gameState.getBoard().getAdjacentTiles(from);
-        HexagonTile best = null;
-        int bestDist = Integer.MAX_VALUE;
-
-        for (HexagonTile neighbor : neighbors) {
-            if (neighbor.getUnit() != null) continue; // Éviter collisions
-            if (gameState.getBoard().getMovementCost(neighbor) >= 999) continue; // Infranchissable
-
-            int cost = gameState.getBoard().calculateMovementCostPath(from, neighbor);
-            if (cost > unit.getCurrentMovement()) continue;
-
-            int dist = gameState.calculateHexDistance(neighbor, to);
-            if (dist < bestDist) {
-                bestDist = dist;
-                best = neighbor;
-            }
+    private void playNextAIAction(List<Unit> units, int index) {
+        if (index >= units.size()) {
+            endTurn();
+            return;
         }
 
-        return best;
+        Unit aiUnit = units.get(index);
+        PauseTransition pause = new PauseTransition(Duration.seconds(0.6));
+        pause.setOnFinished(e -> Platform.runLater(() -> {
+            Optional<Unit> target = gameState.getAllPlayers().stream()
+                    .filter(p -> p != aiUnit.getOwner())
+                    .flatMap(p -> p.getUnits().stream())
+                    .filter(Unit::isAlive)
+                    .filter(enemy -> gameState.canAttack(aiUnit, enemy))
+                    .findFirst();
+
+            if (target.isPresent()) {
+                Logger.log("🤖 IA attaque avec " + aiUnit.getName() + " -> " + target.get().getName());
+                attack(aiUnit, target.get());
+            } else {
+                Unit closest = findClosestEnemy(aiUnit, aiUnit.getOwner());
+                if (closest != null) {
+                    HexagonTile next = findBestStepTowards(aiUnit, closest.getPosition());
+                    if (next != null) {
+                        Logger.log("🤖 IA déplace " + aiUnit.getName() + " vers " +
+                                next.getRow() + "," + next.getCol());
+                        moveUnit(aiUnit, next);
+                    } else {
+                        Logger.log("🤖 " + aiUnit.getName() + " reste sur place (aucun chemin)");
+                    }
+                } else {
+                    Logger.log("🤖 Aucun ennemi trouvé pour " + aiUnit.getName());
+                }
+            }
+
+            gameState.getBoard().updateAllTiles();
+            playNextAIAction(units, index + 1);
+        }));
+        pause.play();
+    }
+
+    private Unit findClosestEnemy(Unit aiUnit, Player aiPlayer) {
+        return gameState.getAllPlayers().stream()
+                .filter(p -> p != aiPlayer)
+                .flatMap(p -> p.getUnits().stream())
+                .filter(Unit::isAlive)
+                .min(Comparator.comparingInt(enemy ->
+                        gameState.calculateHexDistance(aiUnit.getPosition(), enemy.getPosition())))
+                .orElse(null);
+    }
+
+    private HexagonTile findBestStepTowards(Unit unit, HexagonTile goal) {
+        return gameState.getBoard().getAdjacentTiles(unit.getPosition()).stream()
+                .filter(tile -> tile.getUnit() == null)
+                .filter(tile -> gameState.getBoard().getMovementCost(tile) < 999)
+                .filter(tile -> gameState.getBoard().calculateMovementCostPath(unit.getPosition(), tile) <= unit.getCurrentMovement())
+                .min(Comparator.comparingInt(tile -> gameState.calculateHexDistance(tile, goal)))
+                .orElse(null);
     }
 
     public void highlightAttackRange(Unit unit) {
@@ -202,6 +187,4 @@ public class GameController {
             }
         }
     }
-
-
 }

@@ -14,18 +14,22 @@ import tn.isty.wargame.view.Logger;
 
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.EnumMap;
+import java.util.Map;
 
 public class HexagonTile extends StackPane implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final double SIZE = 40;
 
+    private static final Map<TerrainType, Image> textureCache = new EnumMap<>(TerrainType.class);
+
     private static GameState sharedGameState = null;
     private static Unit selectedUnit = null;
 
-    private TerrainType terrainType;
+    private final TerrainType terrainType;
     private Unit unit;
-    private int row;
-    private int col;
+    private final int row;
+    private final int col;
 
     private transient Polygon hexShape;
     private transient Polygon fogOverlay;
@@ -65,9 +69,10 @@ public class HexagonTile extends StackPane implements Serializable {
         unitLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: black;");
         unitLabel.setMouseTransparent(true);
 
-        this.setPrefSize(SIZE * 2, SIZE * 2);
-        this.getChildren().addAll(hexShape, fogOverlay, unitLabel);
         tooltip = new Tooltip();
+
+        setPrefSize(SIZE * 2, SIZE * 2);
+        getChildren().addAll(hexShape, fogOverlay, unitLabel);
     }
 
     private void setupEventHandlers() {
@@ -82,19 +87,16 @@ public class HexagonTile extends StackPane implements Serializable {
 
             if (unit != null && unit.getOwner().equals(current)) {
                 selectedUnit = unit;
-                Logger.log("✅ Sélection : " + unit.getName());
-
                 controller.clearHighlights();
                 controller.highlightAttackRange(selectedUnit);
+                Logger.log("✅ Sélection : " + unit.getName());
 
             } else if (selectedUnit != null && unit != null && !unit.getOwner().equals(current)) {
-                Logger.log("⚔️ Attaque de " + selectedUnit.getName() + " sur " + unit.getName());
                 controller.attack(selectedUnit, unit);
                 controller.clearHighlights();
                 selectedUnit = null;
 
             } else if (selectedUnit != null && unit == null) {
-                Logger.log("🚶 Déplacement...");
                 controller.moveUnit(selectedUnit, this);
                 controller.clearHighlights();
                 selectedUnit = null;
@@ -106,21 +108,14 @@ public class HexagonTile extends StackPane implements Serializable {
     }
 
     public void updateDisplay() {
-        if (unitLabel == null || hexShape == null || fogOverlay == null) {
+        if (hexShape == null || unitLabel == null || fogOverlay == null) {
             initUI();
         }
 
-        Player current = sharedGameState != null ? sharedGameState.getCurrentPlayer() : null;
-        boolean visible = sharedGameState != null &&
-                (sharedGameState.getBoard().isVisible(this) ||
-                        (unit != null && current != null && unit.getOwner().equals(current)));
+        boolean visible = sharedGameState != null && sharedGameState.getBoard().isVisible(this);
 
-        Image texture = loadTerrainTexture(terrainType);
-        if (texture != null) {
-            hexShape.setFill(new ImagePattern(texture));
-        } else {
-            hexShape.setFill(getColorForTerrain(terrainType));
-        }
+        Image texture = getCachedTerrainTexture(terrainType);
+        hexShape.setFill(texture != null ? new ImagePattern(texture) : getColorForTerrain(terrainType));
 
         fogOverlay.setVisible(!visible);
 
@@ -132,33 +127,25 @@ public class HexagonTile extends StackPane implements Serializable {
 
         if (unit != null) {
             unitLabel.setText(unit.getName() + " (" + unit.getUnitType() + ")");
+            Player current = sharedGameState != null ? sharedGameState.getCurrentPlayer() : null;
             unitLabel.setTextFill(current != null && unit.getOwner().equals(current) ? Color.BLUE : Color.CRIMSON);
-
-            tooltip.setText("PV : " + unit.getCurrentHealth() +
-                    "\nTerrain : " + terrainType +
-                    "\nCoût déplacement : " + terrainType.getMoveCost());
-            Tooltip.install(this, tooltip);
+            tooltip.setText("PV : " + unit.getCurrentHealth()
+                    + "\nTerrain : " + terrainType
+                    + "\nCoût déplacement : " + terrainType.getMoveCost());
         } else {
             unitLabel.setText("");
-            tooltip.setText("Terrain : " + terrainType +
-                    "\nCoût déplacement : " + terrainType.getMoveCost());
-            Tooltip.install(this, tooltip);
+            tooltip.setText("Terrain : " + terrainType
+                    + "\nCoût déplacement : " + terrainType.getMoveCost());
         }
 
-        // Ne jamais réinitialiser les styles ici (cela supprime les highlights !)
-        // this.setStyle(""); ← supprimé
+        Tooltip.install(this, tooltip);
     }
 
-    public void playAttackAnimation() {
-        FillTransition ft = new FillTransition(Duration.millis(300), hexShape);
-        ft.setFromValue(Color.RED);
-        ft.setToValue(getColorForTerrain(terrainType));
-        ft.setCycleCount(4);
-        ft.setAutoReverse(true);
-        ft.play();
-    }
+    private Image getCachedTerrainTexture(TerrainType type) {
+        if (textureCache.containsKey(type)) {
+            return textureCache.get(type);
+        }
 
-    private Image loadTerrainTexture(TerrainType type) {
         String filename = switch (type) {
             case PLAINE -> "field.jpg";
             case FORET -> "foret.jpg";
@@ -167,12 +154,16 @@ public class HexagonTile extends StackPane implements Serializable {
             case FORTERESSE -> "mountain.jpg";
             case EAU -> "eau.jpg";
         };
+
         InputStream is = getClass().getResourceAsStream("/images/" + filename);
-        if (is == null) {
+        if (is != null) {
+            Image image = new Image(is);
+            textureCache.put(type, image);
+            return image;
+        } else {
             Logger.log("❌ Image terrain non trouvée : " + filename);
             return null;
         }
-        return new Image(is);
     }
 
     private Color getColorForTerrain(TerrainType type) {
@@ -187,13 +178,19 @@ public class HexagonTile extends StackPane implements Serializable {
         };
     }
 
-    // 🔴 Permet de mettre en évidence la case
+    public void playAttackAnimation() {
+        FillTransition ft = new FillTransition(Duration.millis(150), hexShape);
+        ft.setFromValue(Color.RED);
+        ft.setToValue(getColorForTerrain(terrainType));
+        ft.setCycleCount(2);
+        ft.setAutoReverse(true);
+        ft.play();
+    }
+
     public void setHighlighted(boolean highlighted) {
         hexShape.setStroke(highlighted ? Color.RED : Color.BLACK);
         hexShape.setStrokeWidth(highlighted ? 3 : 1);
     }
-
-    // --- Getters & Setters ---
 
     public TerrainType getTerrainType() { return terrainType; }
 
