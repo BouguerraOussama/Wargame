@@ -7,7 +7,9 @@ import tn.isty.wargame.view.GameMenu;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
-        GameMenu.createMenuScene(primaryStage);
+        primaryStage.setTitle("Wargame - Menu Principal");
+        primaryStage.setScene(GameMenu.createMenuScene(primaryStage)); // ⬅️ récupère la scène
+        primaryStage.show(); // ⬅️ affiche la fenêtre
     }
 
     public static void main(String[] args) {

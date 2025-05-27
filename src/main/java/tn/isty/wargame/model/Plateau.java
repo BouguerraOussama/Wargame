@@ -39,7 +39,6 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
-    // 🔧 Correction : version sans arguments (utilisée par GameSetup)
     public void generateIsland() {
         int centerX = rows / 2;
         int centerY = cols / 2;
@@ -59,7 +58,6 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
-    // 🔧 Correction : version sans arguments (utilisée par GameSetup)
     public void generateCityTerrain() {
         double centerX = rows / 2.0;
         double centerY = cols / 2.0;
@@ -68,9 +66,23 @@ public class Plateau extends Pane implements Serializable {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 double dist = Math.sqrt(Math.pow(row - centerX, 2) + Math.pow(col - centerY, 2));
-                if (dist < minDim * 0.6) terrainGrid[row][col] = TerrainType.FORTERESSE;
-                else if (dist < minDim * 0.8) terrainGrid[row][col] = TerrainType.FORET;
-                else terrainGrid[row][col] = TerrainType.PLAINE;
+
+                if (dist < minDim * 0.5) {
+                    terrainGrid[row][col] = TerrainType.FORTERESSE;
+                } else if (dist < minDim * 0.7) {
+                    terrainGrid[row][col] = TerrainType.COLLINE;
+                } else if (dist < minDim * 0.9) {
+                    terrainGrid[row][col] = TerrainType.FORET;
+                } else {
+                    double noise = Math.random();
+                    if (noise < 0.1) terrainGrid[row][col] = TerrainType.COLLINE;
+                    else if (noise < 0.2) terrainGrid[row][col] = TerrainType.FORET;
+                    else terrainGrid[row][col] = TerrainType.PLAINE;
+                }
+
+                if (dist < minDim * 0.6 && Math.random() < 0.05) {
+                    terrainGrid[row][col] = TerrainType.EAU;
+                }
             }
         }
 
@@ -165,7 +177,7 @@ public class Plateau extends Pane implements Serializable {
 
         int[][] offsetsEven = {{-1, 0}, {-1, -1}, {0, -1}, {1, 0}, {0, 1}, {-1, 1}};
         int[][] offsetsOdd = {{-1, 0}, {1, -1}, {0, -1}, {1, 0}, {1, 1}, {0, 1}};
-        int[][] offsets = (col % 2 == 0) ? offsetsEven : offsetsOdd;
+        int[][] offsets = (row % 2 == 0) ? offsetsEven : offsetsOdd;  // ✅ Correction ici
 
         for (int[] offset : offsets) {
             int newRow = row + offset[0];

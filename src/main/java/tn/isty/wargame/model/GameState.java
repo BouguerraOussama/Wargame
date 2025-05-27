@@ -101,7 +101,11 @@ public class GameState implements Serializable {
             return false;
         }
 
-
+        List<HexagonTile> adjacentes = board.getAdjacentTiles(unit.getPosition());
+        if (!adjacentes.contains(destination)) {
+            Logger.log("❌ Déplacement interdit : seule une case adjacente est autorisée");
+            return false;
+        }
 
         int cost = board.calculateMovementCostPath(unit.getPosition(), destination);
         return cost <= unit.getCurrentMovement();

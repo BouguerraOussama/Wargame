@@ -2,6 +2,7 @@ package tn.isty.wargame.controller;
 
 import tn.isty.wargame.model.GameState;
 import tn.isty.wargame.model.HexagonTile;
+import tn.isty.wargame.model.Plateau;
 import tn.isty.wargame.model.Player;
 import tn.isty.wargame.model.TerrainType;
 import tn.isty.wargame.model.Unit;
@@ -171,4 +172,36 @@ public class GameController {
 
         return best;
     }
+
+    public void highlightAttackRange(Unit unit) {
+        if (unit == null || unit.getPosition() == null) return;
+
+        Plateau plateau = gameState.getBoard();
+        int range = unit.getAttackRange();
+
+        for (int row = 0; row < plateau.getRows(); row++) {
+            for (int col = 0; col < plateau.getCols(); col++) {
+                HexagonTile tile = plateau.getCase(row, col);
+                if (tile == null) continue;
+
+                int distance = gameState.calculateHexDistance(unit.getPosition(), tile);
+                boolean inRange = distance <= range && distance > 0;
+                boolean visible = plateau.isVisible(tile);
+
+                tile.setHighlighted(inRange && visible);
+            }
+        }
+    }
+
+    public void clearHighlights() {
+        Plateau plateau = gameState.getBoard();
+        for (int row = 0; row < plateau.getRows(); row++) {
+            for (int col = 0; col < plateau.getCols(); col++) {
+                HexagonTile tile = plateau.getCase(row, col);
+                if (tile != null) tile.setHighlighted(false);
+            }
+        }
+    }
+
+
 }

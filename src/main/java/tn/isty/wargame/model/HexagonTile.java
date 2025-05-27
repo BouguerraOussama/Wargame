@@ -20,6 +20,7 @@ public class HexagonTile extends StackPane implements Serializable {
     private static final double SIZE = 40;
 
     private static GameState sharedGameState = null;
+    private static Unit selectedUnit = null;
 
     private TerrainType terrainType;
     private Unit unit;
@@ -30,8 +31,6 @@ public class HexagonTile extends StackPane implements Serializable {
     private transient Polygon fogOverlay;
     private transient Label unitLabel;
     private transient Tooltip tooltip;
-
-    private static Unit selectedUnit = null;
 
     public HexagonTile(TerrainType type, int row, int col) {
         this.terrainType = type;
@@ -56,9 +55,10 @@ public class HexagonTile extends StackPane implements Serializable {
         }
 
         hexShape.setStroke(Color.BLACK);
+        hexShape.setStrokeWidth(1);
 
-        fogOverlay.setFill(Color.rgb(0, 0, 0, 0.6)); // gris semi-transparent
-        fogOverlay.setVisible(false); // visible uniquement si le tile est dans le brouillard
+        fogOverlay.setFill(Color.rgb(0, 0, 0, 0.6));
+        fogOverlay.setVisible(false);
         fogOverlay.setMouseTransparent(true);
 
         unitLabel = new Label();
@@ -83,14 +83,22 @@ public class HexagonTile extends StackPane implements Serializable {
             if (unit != null && unit.getOwner().equals(current)) {
                 selectedUnit = unit;
                 Logger.log("✅ Sélection : " + unit.getName());
+
+                controller.clearHighlights();
+                controller.highlightAttackRange(selectedUnit);
+
             } else if (selectedUnit != null && unit != null && !unit.getOwner().equals(current)) {
                 Logger.log("⚔️ Attaque de " + selectedUnit.getName() + " sur " + unit.getName());
                 controller.attack(selectedUnit, unit);
+                controller.clearHighlights();
                 selectedUnit = null;
+
             } else if (selectedUnit != null && unit == null) {
                 Logger.log("🚶 Déplacement...");
                 controller.moveUnit(selectedUnit, this);
+                controller.clearHighlights();
                 selectedUnit = null;
+
             } else {
                 Logger.log("🟦 Clic ignoré");
             }
@@ -103,11 +111,9 @@ public class HexagonTile extends StackPane implements Serializable {
         }
 
         Player current = sharedGameState != null ? sharedGameState.getCurrentPlayer() : null;
-
-        boolean visible = sharedGameState != null && (
-                sharedGameState.getBoard().isVisible(this) ||
-                (unit != null && current != null && unit.getOwner().equals(current))
-        );
+        boolean visible = sharedGameState != null &&
+                (sharedGameState.getBoard().isVisible(this) ||
+                        (unit != null && current != null && unit.getOwner().equals(current)));
 
         Image texture = loadTerrainTexture(terrainType);
         if (texture != null) {
@@ -125,7 +131,7 @@ public class HexagonTile extends StackPane implements Serializable {
         }
 
         if (unit != null) {
-            unitLabel.setText(unit.getName() + " (" + unit.getType() + ")");
+            unitLabel.setText(unit.getName() + " (" + unit.getUnitType() + ")");
             unitLabel.setTextFill(current != null && unit.getOwner().equals(current) ? Color.BLUE : Color.CRIMSON);
 
             tooltip.setText("PV : " + unit.getCurrentHealth() +
@@ -138,6 +144,9 @@ public class HexagonTile extends StackPane implements Serializable {
                     "\nCoût déplacement : " + terrainType.getMoveCost());
             Tooltip.install(this, tooltip);
         }
+
+        // Ne jamais réinitialiser les styles ici (cela supprime les highlights !)
+        // this.setStyle(""); ← supprimé
     }
 
     public void playAttackAnimation() {
@@ -178,7 +187,13 @@ public class HexagonTile extends StackPane implements Serializable {
         };
     }
 
-    // --- Getters & Setters
+    // 🔴 Permet de mettre en évidence la case
+    public void setHighlighted(boolean highlighted) {
+        hexShape.setStroke(highlighted ? Color.RED : Color.BLACK);
+        hexShape.setStrokeWidth(highlighted ? 3 : 1);
+    }
+
+    // --- Getters & Setters ---
 
     public TerrainType getTerrainType() { return terrainType; }
 

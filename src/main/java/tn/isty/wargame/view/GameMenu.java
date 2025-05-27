@@ -4,26 +4,15 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundImage;
-import javafx.scene.layout.BackgroundPosition;
-import javafx.scene.layout.BackgroundRepeat;
-import javafx.scene.layout.BackgroundSize;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import tn.isty.wargame.controller.GameController;
-import tn.isty.wargame.model.GameState;
-import tn.isty.wargame.model.HexagonTile;
-import tn.isty.wargame.model.Plateau;
-import tn.isty.wargame.model.Player;
-import tn.isty.wargame.model.Unit;
+import tn.isty.wargame.model.*;
 import tn.isty.wargame.util.SaveManager;
+import tn.isty.wargame.util.UIUtils;
 
 public class GameMenu {
 
@@ -32,19 +21,13 @@ public class GameMenu {
         title.setTextFill(Color.WHITE);
         title.setFont(Font.font("Georgia", FontWeight.BOLD, 80));
 
-        Button startButton = new Button("Nouvelle Partie");
-        Button loadButton = new Button("Charger Partie");
-        Button quitButton = new Button("Quitter");
-
-        startButton.setPrefWidth(300);
-        loadButton.setPrefWidth(300);
-        quitButton.setPrefWidth(300);
-
-        startButton.setStyle("-fx-font-size: 24px; -fx-background-color: #444; -fx-text-fill: white;");
-        loadButton.setStyle("-fx-font-size: 24px; -fx-background-color: #444; -fx-text-fill: white;");
-        quitButton.setStyle("-fx-font-size: 24px; -fx-background-color: #222; -fx-text-fill: white;");
+        Button startButton = UIUtils.createMenuButton("Nouvelle Partie");
+        Button loadButton = UIUtils.createMenuButton("Charger Partie");
+        Button helpButton = UIUtils.createMenuButton("Aide / Tutoriel");
+        Button quitButton = UIUtils.createMenuButton("Quitter");
 
         startButton.setOnAction(e -> GameSetup.createSetupScene(stage));
+        helpButton.setOnAction(e -> TutorialScreen.show(stage));
 
         loadButton.setOnAction(e -> {
             GameState loadedState = SaveManager.charger("savegame.ser");
@@ -69,23 +52,20 @@ public class GameMenu {
 
                 GameController controller = new GameController(loadedState);
 
-                Button endTurnButton = new Button("Fin de tour");
+                Button endTurnButton = UIUtils.createMenuButton("Fin de tour");
                 endTurnButton.setLayoutX(20);
                 endTurnButton.setLayoutY(20);
-                endTurnButton.setStyle("-fx-font-size: 16px;");
                 endTurnButton.setOnAction(ev -> controller.endTurn());
 
-                Button saveButton = new Button("Sauvegarder");
+                Button saveButton = UIUtils.createMenuButton("Sauvegarder");
                 saveButton.setLayoutX(140);
                 saveButton.setLayoutY(20);
-                saveButton.setStyle("-fx-font-size: 16px;");
                 saveButton.setOnAction(ev -> SaveManager.sauvegarder(loadedState, "savegame.ser"));
 
-                Button returnButton = new Button("Retour Menu");
+                Button returnButton = UIUtils.createMenuButton("Retour Menu");
                 returnButton.setLayoutX(280);
                 returnButton.setLayoutY(20);
-                returnButton.setStyle("-fx-font-size: 16px;");
-                returnButton.setOnAction(ev -> createMenuScene(stage));
+                returnButton.setOnAction(ev -> UIUtils.setSceneWithShake(stage, createMenuScene(stage)));
 
                 newPlateau.getChildren().addAll(endTurnButton, saveButton, returnButton);
 
@@ -109,26 +89,14 @@ public class GameMenu {
 
         quitButton.setOnAction(e -> stage.close());
 
-        VBox menuBox = new VBox(30, title, startButton, loadButton, quitButton);
+        VBox menuBox = new VBox(30, title, startButton, loadButton, helpButton, quitButton);
         menuBox.setAlignment(Pos.CENTER);
 
         StackPane root = new StackPane(menuBox);
-        root.setBackground(new Background(new BackgroundImage(
-                new Image(GameMenu.class.getResource("/images/war_background.jpg").toExternalForm(),
-                        -1, -1, true, true),
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundPosition.CENTER,
-                new BackgroundSize(100, 100, true, true, true, false)
-        )));
+        root.setBackground(UIUtils.getBackgroundImage());
 
-        Scene scene = new Scene(root);
-        stage.setScene(scene);
-        stage.setWidth(1280);
-        stage.setHeight(720);
-        stage.setFullScreen(false);
-        stage.show();
-
+        Scene scene = new Scene(root, 1280, 800);
+        UIUtils.setSceneWithShake(stage, scene);
         return scene;
     }
 }

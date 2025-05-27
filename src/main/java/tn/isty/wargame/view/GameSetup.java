@@ -1,15 +1,20 @@
 package tn.isty.wargame.view;
 
+import javafx.animation.PauseTransition;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import tn.isty.wargame.controller.GameController;
 import tn.isty.wargame.model.*;
 import tn.isty.wargame.util.SaveManager;
+import tn.isty.wargame.util.UIUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +29,7 @@ public class GameSetup {
     public static Scene createSetupScene(Stage stage) {
         VBox root = new VBox(30);
         root.setAlignment(Pos.CENTER);
-        root.setBackground(getBackgroundImage());
+        root.setBackground(UIUtils.getBackgroundImage());
 
         Label label = new Label("Choisissez le nombre de joueurs");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
@@ -34,7 +39,7 @@ public class GameSetup {
 
         for (int i = 2; i <= 4; i++) {
             int count = i;
-            Button btn = createMenuButton(count + " joueurs");
+            Button btn = UIUtils.createMenuButton(count + " joueurs");
             btn.setOnAction(e -> showPlayerChoice(stage, count));
             buttonsBox.getChildren().add(btn);
         }
@@ -43,10 +48,10 @@ public class GameSetup {
 
         StackPane container = new StackPane(root);
         container.setAlignment(Pos.CENTER);
-        container.setBackground(getBackgroundImage());
+        container.setBackground(UIUtils.getBackgroundImage());
 
         Scene scene = new Scene(container, 1280, 800);
-        setSceneWithShake(stage, scene);
+        UIUtils.setSceneWithShake(stage, scene);
         return scene;
     }
 
@@ -65,7 +70,7 @@ public class GameSetup {
 
         for (int i = 0; i < numPlayers; i++) {
             int index = i;
-            Button toggleBtn = createMenuButton("Joueur " + (i + 1) + " : Humain");
+            Button toggleBtn = UIUtils.createMenuButton("Joueur " + (i + 1) + " : Humain");
             toggleBtn.setOnAction(e -> {
                 boolean isIA = !iaFlags.get(index);
                 iaFlags.set(index, isIA);
@@ -74,17 +79,16 @@ public class GameSetup {
             buttonBox.getChildren().add(toggleBtn);
         }
 
-        Button nextButton = createMenuButton("Choisir le terrain");
+        Button nextButton = UIUtils.createMenuButton("Choisir le terrain");
         nextButton.setOnAction(e -> showTerrainChoice(stage, numPlayers, iaFlags));
 
         layout.getChildren().addAll(label, buttonBox, nextButton);
 
         StackPane root = new StackPane(layout);
-        root.setAlignment(Pos.CENTER);
-        root.setBackground(getBackgroundImage());
+        root.setBackground(UIUtils.getBackgroundImage());
 
         Scene scene = new Scene(root);
-        setSceneWithShake(stage, scene);
+        UIUtils.setSceneWithShake(stage, scene);
     }
 
     private static void showTerrainChoice(Stage stage, int numPlayers, List<Boolean> iaFlags) {
@@ -94,19 +98,19 @@ public class GameSetup {
         Label label = new Label("Choisissez le terrain");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        Button cityButton = createMenuButton("Ville");
+        Button cityButton = UIUtils.createMenuButton("Ville");
         cityButton.setOnAction(e -> prepareBattle(stage, numPlayers, iaFlags, Plateau::generateCityTerrain));
 
-        Button islandButton = createMenuButton("Île");
+        Button islandButton = UIUtils.createMenuButton("Île");
         islandButton.setOnAction(e -> prepareBattle(stage, numPlayers, iaFlags, Plateau::generateIsland));
 
         terrainBox.getChildren().addAll(label, cityButton, islandButton);
 
         StackPane root = new StackPane(terrainBox);
-        root.setBackground(getBackgroundImage());
+        root.setBackground(UIUtils.getBackgroundImage());
 
         Scene scene = new Scene(root);
-        setSceneWithShake(stage, scene);
+        UIUtils.setSceneWithShake(stage, scene);
     }
 
     private static void prepareBattle(Stage stage, int numPlayers, List<Boolean> iaFlags, TerrainGenerator generator) {
@@ -144,7 +148,7 @@ public class GameSetup {
             buttons.setAlignment(Pos.CENTER);
 
             for (ArmyType type : ArmyType.values()) {
-                Button btn = createMenuButton(type.name());
+                Button btn = UIUtils.createMenuButton(type.name());
                 btn.setOnAction(e -> {
                     player.setArmyType(type);
                     btn.setDisable(true);
@@ -158,7 +162,7 @@ public class GameSetup {
             playerSelectors.getChildren().add(box);
         }
 
-        Button launchBtn = createMenuButton("Lancer la partie");
+        Button launchBtn = UIUtils.createMenuButton("Lancer la partie");
         launchBtn.setOnAction(e -> {
             boolean allChosen = players.stream().filter(p -> !p.isAI()).allMatch(p -> p.getArmyType() != null);
             if (!allChosen) {
@@ -166,18 +170,44 @@ public class GameSetup {
                 return;
             }
 
-            // Ajout du shake juste avant la transition finale
-            setSceneWithShake(stage, stage.getScene());
-            launchGame(stage, players, plateau);
+            UIUtils.setSceneWithShake(stage, stage.getScene());
+            showLoadingScreen(stage, () -> {
+                UIUtils.setSceneWithShake(stage, stage.getScene());
+                launchGame(stage, players, plateau);
+            });
         });
 
         layout.getChildren().addAll(label, playerSelectors, launchBtn);
 
         StackPane root = new StackPane(layout);
-        root.setBackground(getBackgroundImage());
+        root.setBackground(UIUtils.getBackgroundImage());
 
         Scene scene = new Scene(root);
-        setSceneWithShake(stage, scene);
+        UIUtils.setSceneWithShake(stage, scene);
+    }
+
+    private static void showLoadingScreen(Stage stage, Runnable afterLoading) {
+        VBox root = new VBox(20);
+        root.setAlignment(Pos.CENTER);
+        root.setStyle("-fx-background-color: black;");
+
+        Image gif = new Image(GameSetup.class.getResource("/images/loading.gif").toExternalForm());
+        ImageView loadingGif = new ImageView(gif);
+        loadingGif.setFitWidth(200); // visible!
+        loadingGif.setPreserveRatio(true);
+
+        Label loadingLabel = new Label("Chargement en cours...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+
+        root.getChildren().addAll(loadingGif, loadingLabel);
+
+        Scene loadingScene = new Scene(root, 1280, 800);
+        stage.setScene(loadingScene);
+        stage.show();
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(5));
+        pause.setOnFinished(e -> afterLoading.run());
+        pause.play();
     }
 
     private static void launchGame(Stage stage, List<Player> players, Plateau plateau) {
@@ -195,43 +225,43 @@ public class GameSetup {
 
         GameController controller = new GameController(gameState);
 
-        Button endTurnButton = new Button("Fin de tour");
-        endTurnButton.setLayoutX(20);
-        endTurnButton.setLayoutY(20);
-        endTurnButton.setStyle("-fx-font-size: 14px;");
+        Button endTurnButton = UIUtils.createWhiteButton("Fin de tour");
         endTurnButton.setOnAction(ev -> controller.endTurn());
 
-        Button saveButton = new Button("Sauvegarder");
-        saveButton.setLayoutX(140);
-        saveButton.setLayoutY(20);
-        saveButton.setStyle("-fx-font-size: 14px;");
+        Button saveButton = UIUtils.createWhiteButton("Sauvegarder");
         saveButton.setOnAction(ev -> SaveManager.sauvegarder(gameState, "savegame.ser"));
 
-        Button returnButton = new Button("Retour Menu");
-        returnButton.setLayoutX(260);
-        returnButton.setLayoutY(20);
-        returnButton.setStyle("-fx-font-size: 14px;");
-        returnButton.setOnAction(ev -> GameMenu.createMenuScene(stage));
+        Button returnButton = UIUtils.createWhiteButton("Retour Menu");
+        returnButton.setOnAction(ev -> UIUtils.setSceneWithShake(stage, GameMenu.createMenuScene(stage)));
 
-        plateau.getChildren().addAll(endTurnButton, saveButton, returnButton);
+        HBox buttonBar = new HBox(15, endTurnButton, saveButton, returnButton);
+        buttonBar.setAlignment(Pos.CENTER_LEFT);
+        buttonBar.setStyle("-fx-padding: 10px;");
 
-        VBox sidePanel = new VBox();
+        VBox sidePanel = new VBox(15);
         sidePanel.setStyle("-fx-background-color: #222; -fx-padding: 10;");
-        sidePanel.setPrefWidth(300);
+        sidePanel.setPrefWidth(400);
 
         Label playerLabel = new Label("Joueur courant : " + gameState.getCurrentPlayer().getName());
         playerLabel.setStyle("-fx-text-fill: white;");
+
         Label unitsLabel = new Label("Unités : " + gameState.getCurrentPlayer().getUnits().size());
         unitsLabel.setStyle("-fx-text-fill: white;");
 
         LogPanel logPanel = new LogPanel();
 
-        sidePanel.getChildren().addAll(playerLabel, unitsLabel, logPanel);
+        sidePanel.getChildren().addAll(playerLabel, unitsLabel, buttonBar, logPanel);
         VBox.setVgrow(logPanel, Priority.ALWAYS);
 
-        HBox mainLayout = new HBox(sidePanel, plateau);
-        Scene gameScene2 = new Scene(mainLayout, 1280, 800);
-        stage.setScene(gameScene2);
+        plateau.setTranslateX(30);
+        plateau.setTranslateY(-80);
+
+        HBox mainLayout = new HBox(10);
+        mainLayout.setPadding(new Insets(10));
+        mainLayout.getChildren().addAll(sidePanel, plateau);
+
+        Scene gameScene = new Scene(mainLayout, 1280, 800);
+        stage.setScene(gameScene);
         stage.setTitle("Wargame - Partie");
 
         controller.playTurn();
@@ -269,7 +299,6 @@ public class GameSetup {
             plateau.placerUnite(tile.getRow(), tile.getCol(), unites.get(unitIndex++));
         }
 
-        // Si pas toutes les unités placées, chercher ailleurs
         if (unitIndex < unites.size()) {
             Logger.log("⚠️ Recherche hors zone pour " + joueur.getName());
             for (int row = 0; row < plateau.getRows(); row++) {
@@ -289,33 +318,6 @@ public class GameSetup {
         if (unitIndex < unites.size()) {
             Logger.log("⚠️ Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
         }
-    }
-
-    private static Button createMenuButton(String text) {
-        Button btn = new Button(text);
-        btn.setStyle("-fx-font-size: 18px; -fx-background-color: #444; -fx-text-fill: white;");
-        btn.setPrefWidth(250);
-        return btn;
-    }
-
-    private static Background getBackgroundImage() {
-        return new Background(new BackgroundImage(
-            new Image(GameMenu.class.getResource("/images/war_background.jpg").toExternalForm(),
-            -1, -1, true, true),
-            BackgroundRepeat.NO_REPEAT,
-            BackgroundRepeat.NO_REPEAT,
-            BackgroundPosition.CENTER,
-            new BackgroundSize(100, 100, true, true, true, false)
-        ));
-    }
-
-    private static void setSceneWithShake(Stage stage, Scene scene) {
-        stage.setScene(scene);
-        stage.setFullScreen(false);
-        stage.setWidth(1281);
-        stage.setHeight(801);
-        stage.setX(stage.getX() + 0.001);
-        stage.setY(stage.getY() + 0.001);
     }
 
     @FunctionalInterface

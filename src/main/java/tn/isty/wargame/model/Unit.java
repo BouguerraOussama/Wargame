@@ -6,7 +6,7 @@ public class Unit implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final String name;
-    private final String type;
+    private final UnitType type;
     private final int maxHealth;
     private final int attack;
     private final int defense;
@@ -23,7 +23,7 @@ public class Unit implements Serializable {
     private boolean wasAttackedThisTurn = false;
     private boolean hasActed = false;
 
-    public Unit(String name, String type, int maxHealth, int attack, int defense,
+    public Unit(String name, UnitType type, int maxHealth, int attack, int defense,
                 int maxMovement, int visionRange, int attackRange, Player owner) {
         this.name = name;
         this.type = type;
@@ -41,7 +41,7 @@ public class Unit implements Serializable {
 
     // Getters
     public String getName() { return name; }
-    public String getType() { return type; }
+    public UnitType getUnitType() { return type; }
     public int getCurrentHealth() { return currentHealth; }
     public int getAttack() { return attack; }
     public int getDefense() { return defense; }
@@ -125,6 +125,6 @@ public class Unit implements Serializable {
 
     @Override
     public String toString() {
-        return name + " [" + type + "] HP:" + currentHealth + " MV:" + currentMovement;
+        return name + " [" + type.name() + "] HP:" + currentHealth + " MV:" + currentMovement;
     }
 }
