@@ -12,9 +12,19 @@ import tn.isty.wargame.model.GameState;
 import tn.isty.wargame.model.Plateau;
 import tn.isty.wargame.util.SaveManager;
 import tn.isty.wargame.util.UIUtils;
-
+/**
+ * Classe responsable de la création et de la gestion de la vue principale du jeu.
+ * Cette classe génère la scène JavaFX qui contient l'interface utilisateur complète
+ * du jeu, incluant le plateau de jeu, les contrôles et le panneau de log.
+ */
 public class GameView {
-
+    /**
+     * Crée la scène principale du jeu avec tous ses composants graphiques.
+     *
+     * Stage stage     La fenêtre principale sur laquelle afficher la scène.
+     * GameState gameState L'état courant du jeu contenant les données du plateau et des joueurs.
+     * return Une instance de  Scene contenant l'interface complète du jeu.
+     */
     public static Scene createGameScene(Stage stage, GameState gameState) {
         GameController controller = new GameController(gameState);
         Plateau plateau = gameState.getBoard();

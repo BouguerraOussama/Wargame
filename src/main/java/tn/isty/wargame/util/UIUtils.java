@@ -10,9 +10,15 @@ import javafx.scene.media.AudioClip;
 import javafx.stage.Stage;
 import tn.isty.wargame.controller.GameController;
 import tn.isty.wargame.model.GameState;
-
+/**
+ * Classe utilitaire pour la création d'éléments d'interface utilisateur réutilisables.
+ * Contient des méthodes statiques pour créer des boutons stylisés, gérer les fonds d'écran,
+ * le contrôle audio et faciliter l'affichage des scènes.
+ */
 public class UIUtils {
-
+    /**
+     * Crée un bouton de menu avec un style spécifique.
+     */
     public static Button createMenuButton(String text) {
         Button btn = new Button(text);
         btn.setStyle("""
@@ -29,7 +35,9 @@ public class UIUtils {
         btn.setPrefWidth(260);
         return btn;
     }
-
+    /**
+     * Crée un bouton blanc avec un style simple.
+     */
     public static Button createWhiteButton(String text) {
         Button btn = new Button(text);
         btn.setStyle("""
@@ -42,7 +50,10 @@ public class UIUtils {
         btn.setPrefWidth(160);
         return btn;
     }
+    /**
+     * Renvoie un panneau avec l'image de fond du jeu redimensionnable.
 
+     */
     public static Pane getBackgroundImagePane() {
         Image img = new Image(UIUtils.class.getResource("/images/war_background.jpg").toExternalForm());
         ImageView imageView = new ImageView(img);

@@ -20,12 +20,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Classe responsable de la création des écrans d'installation et de configuration du jeu.
+ * Permet de choisir le nombre de joueurs, les joueurs IA/humains, le terrain,
+ * l'armée de chaque joueur et lance la partie.
+ */
 public class GameSetup {
-
+    /**
+     * Zones prédéfinies de placement initial des unités selon l'indice du joueur.
+     * Chaque zone est un couple [ligne, colonne].
+     */
     private static final int[][] ZONES_DEPLACEMENT = {
         {0, 0}, {0, 10}, {10, 0}, {10, 10}
     };
 
+    /**
+     * Crée et affiche la scène initiale où l'on choisit le nombre de joueurs.
+     *
+     * Stage stage La fenêtre principale JavaFX.
+     * return La scène affichée.
+     */
     public static Scene createSetupScene(Stage stage) {
         VBox root = new VBox(30);
         root.setAlignment(Pos.CENTER);
@@ -48,7 +62,12 @@ public class GameSetup {
         UIUtils.showScene(stage, scene);
         return scene;
     }
-
+    /**
+     * Affiche l'écran permettant de choisir quels joueurs sont IA ou humains.
+     *
+     *  stage      La fenêtre principale JavaFX.
+     *  numPlayers Nombre total de joueurs.
+     */
     private static void showPlayerChoice(Stage stage, int numPlayers) {
         VBox layout = new VBox(30);
         layout.setAlignment(Pos.CENTER);
@@ -80,7 +99,13 @@ public class GameSetup {
         Scene scene = new Scene(UIUtils.wrapWithBackground(layout));
         UIUtils.showScene(stage, scene);
     }
-
+    /**
+     * Affiche l'écran de sélection du terrain de jeu.
+     *
+     *  stage      La fenêtre principale JavaFX.
+     *  numPlayers Nombre total de joueurs.
+     *  iaFlags    Liste des indicateurs IA/humains pour chaque joueur.
+     */
     private static void showTerrainChoice(Stage stage, int numPlayers, List<Boolean> iaFlags) {
         VBox terrainBox = new VBox(30);
         terrainBox.setAlignment(Pos.CENTER);
@@ -99,7 +124,14 @@ public class GameSetup {
         Scene scene = new Scene(UIUtils.wrapWithBackground(terrainBox));
         UIUtils.showScene(stage, scene);
     }
-
+    /**
+     * Prépare le plateau de jeu selon le terrain choisi et crée les joueurs.
+     *
+     *  stage      La fenêtre principale JavaFX.
+     *  numPlayers Nombre total de joueurs.
+     *  iaFlags    Liste des indicateurs IA/humains pour chaque joueur.
+     *  generator  Générateur de terrain à appliquer.
+     */
     private static void prepareBattle(Stage stage, int numPlayers, List<Boolean> iaFlags, TerrainGenerator generator) {
         Plateau plateau = new Plateau(20, 20);
         generator.generate(plateau);
@@ -111,7 +143,13 @@ public class GameSetup {
 
         showArmyChoice(stage, players, plateau);
     }
-
+    /**
+     * Affiche la scène de sélection d'armée pour chaque joueur humain.
+     *
+     *  stage   La fenêtre principale JavaFX.
+     *  players Liste des joueurs créés.
+     *  plateau Le plateau de jeu initialisé.
+     */
     private static void showArmyChoice(Stage stage, List<Player> players, Plateau plateau) {
         VBox layout = new VBox(25);
         layout.setAlignment(Pos.CENTER);
@@ -164,7 +202,12 @@ public class GameSetup {
         Scene scene = new Scene(UIUtils.wrapWithBackground(layout));
         UIUtils.showScene(stage, scene);
     }
-
+    /**
+     * Affiche un écran de chargement animé avant de lancer la partie.
+     *
+     *  stage        La fenêtre principale JavaFX.
+     *  afterLoading Action à exécuter après la fin du chargement.
+     */
     private static void showLoadingScreen(Stage stage, Runnable afterLoading) {
         VBox root = new VBox(20);
         root.setAlignment(Pos.CENTER);
@@ -186,7 +229,13 @@ public class GameSetup {
         pause.setOnFinished(e -> afterLoading.run());
         pause.play();
     }
-
+    /**
+     * Lance la partie avec les joueurs, le plateau et l'interface de jeu.
+     *
+     *  stage   La fenêtre principale JavaFX.
+     *  players Liste des joueurs configurés.
+     *  plateau Le plateau de jeu initialisé.
+     */
     private static void launchGame(Stage stage, List<Player> players, Plateau plateau) {
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
@@ -244,10 +293,16 @@ public class GameSetup {
         stage.setTitle("Wargame - Partie");
         controller.playTurn();
     }
-
+    /**
+     * Place les unités d'un joueur dans sa zone de départ sur le plateau.
+     *
+     *  joueur      Le joueur dont on place les unités.
+     *  plateau     Le plateau de jeu.
+     *  playerIndex L'indice du joueur (définit la zone).
+     */
     private static void placerUnitesPourJoueur(Player joueur, Plateau plateau, int playerIndex) {
         if (playerIndex >= ZONES_DEPLACEMENT.length) {
-            Logger.log("❌ Trop de joueurs pour les zones prédéfinies !");
+            Logger.log(" Trop de joueurs pour les zones prédéfinies !");
             return;
         }
 
@@ -278,7 +333,7 @@ public class GameSetup {
         }
 
         if (unitIndex < unites.size()) {
-            Logger.log("⚠️ Recherche hors zone pour " + joueur.getName());
+            Logger.log(" Recherche hors zone pour " + joueur.getName());
             for (int row = 0; row < plateau.getRows(); row++) {
                 for (int col = 0; col < plateau.getCols(); col++) {
                     if (unitIndex >= unites.size()) break;
@@ -294,10 +349,12 @@ public class GameSetup {
         }
 
         if (unitIndex < unites.size()) {
-            Logger.log("⚠️ Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
+            Logger.log(" Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
         }
     }
-
+    /**
+     * Interface fonctionnelle pour générer un terrain sur un plateau.
+     */
     @FunctionalInterface
     private interface TerrainGenerator {
         void generate(Plateau plateau);
