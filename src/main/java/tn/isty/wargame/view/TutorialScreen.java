@@ -11,7 +11,13 @@ import javafx.stage.Stage;
 import tn.isty.wargame.util.UIUtils;
 
 public class TutorialScreen {
-
+    /**
+     * Classe affichant l'écran tutoriel pour les débutants.
+     *
+     * Cet écran présente les règles de base du jeu, les objectifs,
+     * ainsi que les contrôles essentiels à connaître.
+     *
+     */
     public static void show(Stage stage) {
         Label title = new Label("🧠 Aide pour débutants");
         title.setStyle("-fx-font-size: 28px; -fx-text-fill: white;");

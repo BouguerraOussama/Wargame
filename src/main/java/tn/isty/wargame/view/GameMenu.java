@@ -18,11 +18,22 @@ import tn.isty.wargame.util.UIUtils;
 
 import java.io.File;
 import java.net.URL;
-
+/**
+ * Classe représentant le menu principal du jeu.
+ * Affiche les options principales telles que : nouvelle partie, charger une partie,
+ * aide/tutoriel et quitter. Gère également la musique d'ambiance.
+ */
 public class GameMenu {
 
     private static AudioClip ambiance;
-
+    /**
+     * Crée et affiche la scène du menu principal.
+     * Lance la musique d'ambiance si ce n'est pas déjà fait,
+     * configure les boutons pour démarrer une nouvelle partie,
+     * charger une partie sauvegardée, afficher le tutoriel ou quitter.
+     * @param stage La fenêtre principale JavaFX où afficher la scène.
+     * @return La scène du menu principal.
+     */
     public static Scene createMenuScene(Stage stage) {
         if (ambiance == null) {
             try {

@@ -5,19 +5,31 @@ import tn.isty.wargame.model.Plateau;
 
 import java.io.*;
 
+/**
+ * Classe utilitaire pour gérer la sauvegarde et le chargement des parties de jeu.
+ * Utilise la sérialisation Java pour écrire et lire l'état du jeu dans un fichier.
+ */
 public class SaveManager {
 
     //  Fichier dans le dossier du projet
     private static final String DEFAULT_SAVE_FILE = System.getProperty("user.dir") + File.separator + "savegame.ser";
-
+    /**
+     * Sauvegarde l'état de jeu dans le fichier par défaut.
+     *
+     */
     public static void sauvegarder(GameState gameState) {
         sauvegarder(gameState, DEFAULT_SAVE_FILE);
     }
-
+    /**
+     * Charge l'état de jeu depuis le fichier par défaut.
+     *
+     */
     public static GameState charger() {
         return charger(DEFAULT_SAVE_FILE);
     }
-
+    /**
+     * Sauvegarde l'état de jeu dans un fichier spécifié.
+     */
     public static void sauvegarder(GameState gameState, String filename) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename))) {
             out.writeObject(gameState);
@@ -26,7 +38,11 @@ public class SaveManager {
             System.err.println("Erreur lors de la sauvegarde : " + e.getMessage());
         }
     }
-
+    /**
+     * Charge l'état de jeu depuis un fichier spécifié.
+     * Après chargement, réinitialise les composants JavaFX du plateau et rafraîchit la visibilité.
+     * Supprime ensuite le fichier de sauvegarde pour éviter des rechargements multiples.
+     */
     
     public static GameState charger(String filename) {
         File file = new File(filename);
