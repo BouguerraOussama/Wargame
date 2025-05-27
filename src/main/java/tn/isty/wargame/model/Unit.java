@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 public class Unit implements Serializable {
     private static final long serialVersionUID = 1L;
+    private final String spriteFilename;
 
     private final String name;
     private final UnitType type;
@@ -23,8 +24,9 @@ public class Unit implements Serializable {
     private boolean wasAttackedThisTurn = false;
     private boolean hasActed = false;
 
-    public Unit(String name, UnitType type, int maxHealth, int attack, int defense,
+    public Unit(String spriteFilename, String name, UnitType type, int maxHealth, int attack, int defense,
                 int maxMovement, int visionRange, int attackRange, Player owner) {
+        this.spriteFilename = spriteFilename;
         this.name = name;
         this.type = type;
         this.maxHealth = maxHealth;
@@ -126,5 +128,9 @@ public class Unit implements Serializable {
     @Override
     public String toString() {
         return name + " [" + type.name() + "] HP:" + currentHealth + " MV:" + currentMovement;
+    }
+
+    public String getSpriteFilename() {
+        return spriteFilename;
     }
 }

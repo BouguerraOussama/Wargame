@@ -4,6 +4,7 @@ import javafx.animation.FillTransition;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
@@ -36,6 +37,9 @@ public class HexagonTile extends StackPane implements Serializable {
     private transient Label unitLabel;
     private transient Tooltip tooltip;
 
+    private transient ImageView unitImageView;
+
+
     public HexagonTile(TerrainType type, int row, int col) {
         this.terrainType = type;
         this.row = row;
@@ -49,6 +53,11 @@ public class HexagonTile extends StackPane implements Serializable {
     private void initUI() {
         hexShape = new Polygon();
         fogOverlay = new Polygon();
+
+        unitImageView = new ImageView();
+        unitImageView.setFitWidth(30);
+        unitImageView.setFitHeight(30);
+        unitImageView.setMouseTransparent(true);
 
         for (int i = 0; i < 6; i++) {
             double angle = Math.toRadians(60 * i - 30);
@@ -72,13 +81,13 @@ public class HexagonTile extends StackPane implements Serializable {
         tooltip = new Tooltip();
 
         setPrefSize(SIZE * 2, SIZE * 2);
-        getChildren().addAll(hexShape, fogOverlay, unitLabel);
+        getChildren().addAll(hexShape, fogOverlay, unitImageView);
     }
 
     private void setupEventHandlers() {
         this.setOnMouseClicked(event -> {
             if (sharedGameState == null) {
-                Logger.log("❌ sharedGameState est null");
+                Logger.log(" sharedGameState est null");
                 return;
             }
 
@@ -108,7 +117,7 @@ public class HexagonTile extends StackPane implements Serializable {
     }
 
     public void updateDisplay() {
-        if (hexShape == null || unitLabel == null || fogOverlay == null) {
+        if (hexShape == null || unitLabel == null || fogOverlay == null || unitImageView == null) {
             initUI();
         }
 
@@ -120,26 +129,37 @@ public class HexagonTile extends StackPane implements Serializable {
         fogOverlay.setVisible(!visible);
 
         if (!visible) {
-            unitLabel.setText("");
+            // Cache tout si la tuile n'est pas visible
+            unitImageView.setImage(null);
             Tooltip.uninstall(this, tooltip);
             return;
         }
 
         if (unit != null) {
-            unitLabel.setText(unit.getName() + " (" + unit.getUnitType() + ")");
+            // Affiche le sprite de l’unité
+            Image sprite = getUnitSprite(unit);
+            if (sprite != null) {
+                unitImageView.setImage(sprite);
+            } else {
+                unitImageView.setImage(null);
+                Logger.log("❌ Sprite manquant pour : " + unit.getUnitType());
+            }
+
+            // Met à jour le tooltip
             Player current = sharedGameState != null ? sharedGameState.getCurrentPlayer() : null;
-            unitLabel.setTextFill(current != null && unit.getOwner().equals(current) ? Color.BLUE : Color.CRIMSON);
             tooltip.setText("PV : " + unit.getCurrentHealth()
                     + "\nTerrain : " + terrainType
                     + "\nCoût déplacement : " + terrainType.getMoveCost());
         } else {
-            unitLabel.setText("");
+            // Pas d’unité : pas de sprite
+            unitImageView.setImage(null);
             tooltip.setText("Terrain : " + terrainType
                     + "\nCoût déplacement : " + terrainType.getMoveCost());
         }
 
         Tooltip.install(this, tooltip);
     }
+
 
     private Image getCachedTerrainTexture(TerrainType type) {
         if (textureCache.containsKey(type)) {
@@ -218,4 +238,16 @@ public class HexagonTile extends StackPane implements Serializable {
     public static GameState getSharedGameState() {
         return sharedGameState;
     }
+    private Image getUnitSprite(Unit unit) {
+        if (unit == null || unit.getSpriteFilename() == null) return null;
+
+        InputStream is = getClass().getResourceAsStream("/sprites/" + unit.getSpriteFilename());
+        if (is != null) {
+            return new Image(is);
+        } else {
+            Logger.log("❌ Sprite non trouvé : " + unit.getSpriteFilename());
+            return null;
+        }
+    }
+
 }
