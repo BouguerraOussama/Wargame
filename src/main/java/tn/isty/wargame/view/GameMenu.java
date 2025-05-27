@@ -5,13 +5,24 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
-import javafx.scene.layout.*;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundImage;
+import javafx.scene.layout.BackgroundPosition;
+import javafx.scene.layout.BackgroundRepeat;
+import javafx.scene.layout.BackgroundSize;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import tn.isty.wargame.controller.GameController;
-import tn.isty.wargame.model.*;
+import tn.isty.wargame.model.GameState;
+import tn.isty.wargame.model.HexagonTile;
+import tn.isty.wargame.model.Plateau;
+import tn.isty.wargame.model.Player;
+import tn.isty.wargame.model.Unit;
 import tn.isty.wargame.util.SaveManager;
 
 public class GameMenu {
@@ -78,12 +89,21 @@ public class GameMenu {
 
                 newPlateau.getChildren().addAll(endTurnButton, saveButton, returnButton);
 
-                Scene gameScene = new Scene(newPlateau, 1280, 800);
+                VBox sidePanel = new VBox(10);
+                sidePanel.setStyle("-fx-background-color: #222; -fx-padding: 10;");
+                sidePanel.setPrefWidth(200);
+                Label playerLabel = new Label("Joueur courant : " + loadedState.getCurrentPlayer().getName());
+                playerLabel.setStyle("-fx-text-fill: white;");
+                sidePanel.getChildren().add(playerLabel);
+
+                HBox mainLayout = new HBox(sidePanel, newPlateau);
+                Scene gameScene = new Scene(mainLayout, 1280, 800);
+
                 stage.setScene(gameScene);
                 stage.setTitle("Wargame - Partie chargée");
                 controller.playTurn();
             } else {
-                System.out.println("❌ Échec du chargement de la partie.");
+                Logger.log("❌ Échec du chargement de la partie.");
             }
         });
 

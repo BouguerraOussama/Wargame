@@ -12,63 +12,60 @@ import tn.isty.wargame.model.*;
 import tn.isty.wargame.util.SaveManager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class GameSetup {
 
-    // ✅ Zones de départ 5x5 par joueur (ligne, colonne)
     private static final int[][] ZONES_DEPLACEMENT = {
-            {0, 0},    // Joueur 1
-            {5, 5},    // Joueur 2
-            {0, 5},    // Joueur 3
-            {5, 0}     // Joueur 4
+        {0, 0}, {0, 10}, {10, 0}, {10, 10}
     };
 
     public static Scene createSetupScene(Stage stage) {
+        VBox root = new VBox(30);
+        root.setAlignment(Pos.CENTER);
+        root.setBackground(getBackgroundImage());
+
         Label label = new Label("Choisissez le nombre de joueurs");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        VBox playerSelectionBox = new VBox(20);
-        playerSelectionBox.setAlignment(Pos.CENTER);
+        VBox buttonsBox = new VBox(15);
+        buttonsBox.setAlignment(Pos.CENTER);
 
-        Button[] playerButtons = new Button[3];
-        for (int i = 0; i < 3; i++) {
-            int playerCount = i + 2;
-            Button btn = new Button(playerCount + " joueurs");
-            btn.setStyle("-fx-font-size: 18px; -fx-background-color: #444; -fx-text-fill: white;");
-            btn.setOnAction(e -> showPlayerChoice(stage, playerCount));
-            playerButtons[i] = btn;
+        for (int i = 2; i <= 4; i++) {
+            int count = i;
+            Button btn = createMenuButton(count + " joueurs");
+            btn.setOnAction(e -> showPlayerChoice(stage, count));
+            buttonsBox.getChildren().add(btn);
         }
 
-        playerSelectionBox.getChildren().add(label);
-        playerSelectionBox.getChildren().addAll(playerButtons);
+        root.getChildren().addAll(label, buttonsBox);
 
-        StackPane root = new StackPane(playerSelectionBox);
-        root.setBackground(getBackgroundImage());
+        StackPane container = new StackPane(root);
+        container.setAlignment(Pos.CENTER);
+        container.setBackground(getBackgroundImage());
 
-        Scene scene = new Scene(root);
-        stage.setScene(scene);
-        stage.setMaximized(true);
-        stage.setFullScreen(true);
-
+        Scene scene = new Scene(container, 1280, 800);
+        setSceneWithShake(stage, scene);
         return scene;
     }
 
     private static void showPlayerChoice(Stage stage, int numPlayers) {
-        VBox layout = new VBox(20);
+        VBox layout = new VBox(30);
         layout.setAlignment(Pos.CENTER);
 
         Label label = new Label("Choisissez qui sera IA (max 1)");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
+        VBox buttonBox = new VBox(10);
+        buttonBox.setAlignment(Pos.CENTER);
+
         List<Boolean> iaFlags = new ArrayList<>();
         for (int i = 0; i < numPlayers; i++) iaFlags.add(false);
 
-        VBox buttonBox = new VBox(10);
         for (int i = 0; i < numPlayers; i++) {
             int index = i;
-            Button toggleBtn = new Button("Joueur " + (i + 1) + " : Humain");
-            toggleBtn.setStyle("-fx-font-size: 18px; -fx-background-color: #444; -fx-text-fill: white;");
+            Button toggleBtn = createMenuButton("Joueur " + (i + 1) + " : Humain");
             toggleBtn.setOnAction(e -> {
                 boolean isIA = !iaFlags.get(index);
                 iaFlags.set(index, isIA);
@@ -77,30 +74,31 @@ public class GameSetup {
             buttonBox.getChildren().add(toggleBtn);
         }
 
-        Button nextButton = new Button("Choisir le terrain");
-        nextButton.setStyle("-fx-font-size: 18px; -fx-background-color: #222; -fx-text-fill: white;");
+        Button nextButton = createMenuButton("Choisir le terrain");
         nextButton.setOnAction(e -> showTerrainChoice(stage, numPlayers, iaFlags));
 
         layout.getChildren().addAll(label, buttonBox, nextButton);
 
         StackPane root = new StackPane(layout);
+        root.setAlignment(Pos.CENTER);
         root.setBackground(getBackgroundImage());
 
         Scene scene = new Scene(root);
-        stage.setScene(scene);
-        stage.setMaximized(true);
-        stage.setFullScreen(true);
+        setSceneWithShake(stage, scene);
     }
 
     private static void showTerrainChoice(Stage stage, int numPlayers, List<Boolean> iaFlags) {
-        VBox terrainBox = new VBox(20);
+        VBox terrainBox = new VBox(30);
         terrainBox.setAlignment(Pos.CENTER);
 
         Label label = new Label("Choisissez le terrain");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        Button cityButton = createTerrainButton(stage, "Ville", "#2c3e50", plateau -> plateau.generateCityTerrain(10, 10), numPlayers, iaFlags);
-        Button islandButton = createTerrainButton(stage, "Île", "#16a085", plateau -> plateau.generateIsland(10, 10), numPlayers, iaFlags);
+        Button cityButton = createMenuButton("Ville");
+        cityButton.setOnAction(e -> prepareBattle(stage, numPlayers, iaFlags, Plateau::generateCityTerrain));
+
+        Button islandButton = createMenuButton("Île");
+        islandButton.setOnAction(e -> prepareBattle(stage, numPlayers, iaFlags, Plateau::generateIsland));
 
         terrainBox.getChildren().addAll(label, cityButton, islandButton);
 
@@ -108,42 +106,34 @@ public class GameSetup {
         root.setBackground(getBackgroundImage());
 
         Scene scene = new Scene(root);
-        stage.setScene(scene);
-        stage.setMaximized(true);
-        stage.setFullScreen(true);
+        setSceneWithShake(stage, scene);
     }
 
-    private static Button createTerrainButton(Stage stage, String name, String bgColor,
-                                              TerrainGenerator generator, int numPlayers, List<Boolean> iaFlags) {
-        Button button = new Button(name);
-        button.setStyle("-fx-font-size: 18px; -fx-background-color: " + bgColor + "; -fx-text-fill: white;");
-        button.setOnAction(e -> {
-            Plateau plateau = new Plateau(10, 10);
-            generator.generate(plateau);
+    private static void prepareBattle(Stage stage, int numPlayers, List<Boolean> iaFlags, TerrainGenerator generator) {
+        Plateau plateau = new Plateau(20, 20);
+        generator.generate(plateau);
 
-            List<Player> players = new ArrayList<>();
-            for (int i = 0; i < numPlayers; i++) {
-                players.add(new Player("Joueur " + (i + 1), iaFlags.get(i)));
-            }
+        List<Player> players = new ArrayList<>();
+        for (int i = 0; i < numPlayers; i++) {
+            players.add(new Player("Joueur " + (i + 1), iaFlags.get(i)));
+        }
 
-            showArmyChoice(stage, players, plateau);
-        });
-
-        return button;
+        showArmyChoice(stage, players, plateau);
     }
 
     private static void showArmyChoice(Stage stage, List<Player> players, Plateau plateau) {
-        VBox layout = new VBox(20);
+        VBox layout = new VBox(25);
         layout.setAlignment(Pos.CENTER);
 
         Label label = new Label("Sélectionnez l’armée pour chaque joueur");
         label.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        VBox playerSelectors = new VBox(10);
+        VBox playerSelectors = new VBox(15);
+        playerSelectors.setAlignment(Pos.CENTER);
 
         for (Player player : players) {
             if (player.isAI()) {
-                player.setArmyType(ArmyType.ALLEMAGNE); // par défaut
+                player.setArmyType(ArmyType.ALLEMAGNE);
                 continue;
             }
 
@@ -154,11 +144,11 @@ public class GameSetup {
             buttons.setAlignment(Pos.CENTER);
 
             for (ArmyType type : ArmyType.values()) {
-                Button btn = new Button(type.name());
+                Button btn = createMenuButton(type.name());
                 btn.setOnAction(e -> {
                     player.setArmyType(type);
-                    System.out.println(player.getName() + " a choisi " + type.name());
                     btn.setDisable(true);
+                    Logger.log(player.getName() + " a choisi " + type.name());
                 });
                 buttons.getChildren().add(btn);
             }
@@ -168,17 +158,16 @@ public class GameSetup {
             playerSelectors.getChildren().add(box);
         }
 
-        Button launchBtn = new Button("Lancer la partie");
-        launchBtn.setStyle("-fx-font-size: 18px; -fx-background-color: #222; -fx-text-fill: white;");
+        Button launchBtn = createMenuButton("Lancer la partie");
         launchBtn.setOnAction(e -> {
-            boolean allChosen = players.stream()
-                    .filter(p -> !p.isAI())
-                    .allMatch(p -> p.getArmyType() != null);
+            boolean allChosen = players.stream().filter(p -> !p.isAI()).allMatch(p -> p.getArmyType() != null);
             if (!allChosen) {
-                System.out.println("❗ Tous les joueurs humains doivent choisir une armée !");
+                Logger.log("❗ Tous les joueurs humains doivent choisir une armée !");
                 return;
             }
 
+            // Ajout du shake juste avant la transition finale
+            setSceneWithShake(stage, stage.getScene());
             launchGame(stage, players, plateau);
         });
 
@@ -188,8 +177,7 @@ public class GameSetup {
         root.setBackground(getBackgroundImage());
 
         Scene scene = new Scene(root);
-        stage.setScene(scene);
-        stage.setMaximized(true);
+        setSceneWithShake(stage, scene);
     }
 
     private static void launchGame(Stage stage, List<Player> players, Plateau plateau) {
@@ -198,7 +186,6 @@ public class GameSetup {
             ArmyFactory factory = ArmyFactoryProvider.getFactory(player.getArmyType());
             List<Unit> units = factory.createArmy(player);
             for (Unit unit : units) player.addUnit(unit);
-
             placerUnitesPourJoueur(player, plateau, i);
         }
 
@@ -211,32 +198,48 @@ public class GameSetup {
         Button endTurnButton = new Button("Fin de tour");
         endTurnButton.setLayoutX(20);
         endTurnButton.setLayoutY(20);
-        endTurnButton.setStyle("-fx-font-size: 16px;");
+        endTurnButton.setStyle("-fx-font-size: 14px;");
         endTurnButton.setOnAction(ev -> controller.endTurn());
 
         Button saveButton = new Button("Sauvegarder");
         saveButton.setLayoutX(140);
         saveButton.setLayoutY(20);
-        saveButton.setStyle("-fx-font-size: 16px;");
+        saveButton.setStyle("-fx-font-size: 14px;");
         saveButton.setOnAction(ev -> SaveManager.sauvegarder(gameState, "savegame.ser"));
 
         Button returnButton = new Button("Retour Menu");
-        returnButton.setLayoutX(280);
+        returnButton.setLayoutX(260);
         returnButton.setLayoutY(20);
-        returnButton.setStyle("-fx-font-size: 16px;");
+        returnButton.setStyle("-fx-font-size: 14px;");
         returnButton.setOnAction(ev -> GameMenu.createMenuScene(stage));
 
         plateau.getChildren().addAll(endTurnButton, saveButton, returnButton);
 
-        Scene gameScene = new Scene(plateau, 1280, 800);
-        stage.setScene(gameScene);
+        VBox sidePanel = new VBox();
+        sidePanel.setStyle("-fx-background-color: #222; -fx-padding: 10;");
+        sidePanel.setPrefWidth(300);
+
+        Label playerLabel = new Label("Joueur courant : " + gameState.getCurrentPlayer().getName());
+        playerLabel.setStyle("-fx-text-fill: white;");
+        Label unitsLabel = new Label("Unités : " + gameState.getCurrentPlayer().getUnits().size());
+        unitsLabel.setStyle("-fx-text-fill: white;");
+
+        LogPanel logPanel = new LogPanel();
+
+        sidePanel.getChildren().addAll(playerLabel, unitsLabel, logPanel);
+        VBox.setVgrow(logPanel, Priority.ALWAYS);
+
+        HBox mainLayout = new HBox(sidePanel, plateau);
+        Scene gameScene2 = new Scene(mainLayout, 1280, 800);
+        stage.setScene(gameScene2);
         stage.setTitle("Wargame - Partie");
+
         controller.playTurn();
     }
 
     private static void placerUnitesPourJoueur(Player joueur, Plateau plateau, int playerIndex) {
         if (playerIndex >= ZONES_DEPLACEMENT.length) {
-            System.err.println("❌ Trop de joueurs pour les zones prédéfinies !");
+            Logger.log("❌ Trop de joueurs pour les zones prédéfinies !");
             return;
         }
 
@@ -246,38 +249,73 @@ public class GameSetup {
         int endRow = Math.min(baseRow + 5, plateau.getRows());
         int endCol = Math.min(baseCol + 5, plateau.getCols());
 
-        int unitIndex = 0;
-
+        List<HexagonTile> candidates = new ArrayList<>();
         for (int row = baseRow; row < endRow; row++) {
             for (int col = baseCol; col < endCol; col++) {
-                if (unitIndex >= unites.size()) return;
-                if (row >= plateau.getRows() || col >= plateau.getCols()) continue;
-
                 HexagonTile tile = plateau.getCase(row, col);
-                if (tile == null || tile.getUnit() != null) continue;
+                if (tile != null && tile.getUnit() == null) {
+                    TerrainType terrain = tile.getTerrainType();
+                    if (terrain == TerrainType.PLAINE || terrain == TerrainType.FORET || terrain == TerrainType.COLLINE) {
+                        candidates.add(tile);
+                    }
+                }
+            }
+        }
 
-                TerrainType terrain = tile.getTerrainType();
-                if (terrain == TerrainType.PLAINE || terrain == TerrainType.FORET || terrain == TerrainType.COLLINE) {
-                    plateau.placerUnite(row, col, unites.get(unitIndex));
-                    unitIndex++;
+        Collections.shuffle(candidates);
+        int unitIndex = 0;
+        for (HexagonTile tile : candidates) {
+            if (unitIndex >= unites.size()) break;
+            plateau.placerUnite(tile.getRow(), tile.getCol(), unites.get(unitIndex++));
+        }
+
+        // Si pas toutes les unités placées, chercher ailleurs
+        if (unitIndex < unites.size()) {
+            Logger.log("⚠️ Recherche hors zone pour " + joueur.getName());
+            for (int row = 0; row < plateau.getRows(); row++) {
+                for (int col = 0; col < plateau.getCols(); col++) {
+                    if (unitIndex >= unites.size()) break;
+                    HexagonTile tile = plateau.getCase(row, col);
+                    if (tile.getUnit() == null) {
+                        TerrainType terrain = tile.getTerrainType();
+                        if (terrain == TerrainType.PLAINE || terrain == TerrainType.FORET || terrain == TerrainType.COLLINE) {
+                            plateau.placerUnite(row, col, unites.get(unitIndex++));
+                        }
+                    }
                 }
             }
         }
 
         if (unitIndex < unites.size()) {
-            System.err.println("⚠️ Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
+            Logger.log("⚠️ Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
         }
+    }
+
+    private static Button createMenuButton(String text) {
+        Button btn = new Button(text);
+        btn.setStyle("-fx-font-size: 18px; -fx-background-color: #444; -fx-text-fill: white;");
+        btn.setPrefWidth(250);
+        return btn;
     }
 
     private static Background getBackgroundImage() {
         return new Background(new BackgroundImage(
-                new Image(GameMenu.class.getResource("/images/war_background.jpg").toExternalForm(),
-                        -1, -1, true, true),
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundRepeat.NO_REPEAT,
-                BackgroundPosition.CENTER,
-                new BackgroundSize(100, 100, true, true, true, false)
+            new Image(GameMenu.class.getResource("/images/war_background.jpg").toExternalForm(),
+            -1, -1, true, true),
+            BackgroundRepeat.NO_REPEAT,
+            BackgroundRepeat.NO_REPEAT,
+            BackgroundPosition.CENTER,
+            new BackgroundSize(100, 100, true, true, true, false)
         ));
+    }
+
+    private static void setSceneWithShake(Stage stage, Scene scene) {
+        stage.setScene(scene);
+        stage.setFullScreen(false);
+        stage.setWidth(1281);
+        stage.setHeight(801);
+        stage.setX(stage.getX() + 0.001);
+        stage.setY(stage.getY() + 0.001);
     }
 
     @FunctionalInterface

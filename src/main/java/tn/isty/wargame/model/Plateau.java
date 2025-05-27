@@ -1,20 +1,16 @@
 package tn.isty.wargame.model;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-
 import javafx.scene.layout.Pane;
+import java.io.Serializable;
+import java.util.*;
 
 public class Plateau extends Pane implements Serializable {
     private static final long serialVersionUID = 1L;
-    private final int rows;
-    private final int cols;
-    private final double tileSize = 40;
+    private static final double tileSize = 40;
+    private static final double paddingTop = 60;
+
+    private int rows;
+    private int cols;
 
     private HexagonTile[][] grille;
     private TerrainType[][] terrainGrid;
@@ -22,10 +18,13 @@ public class Plateau extends Pane implements Serializable {
     public Plateau(int rows, int cols) {
         this.rows = rows;
         this.cols = cols;
-        this.setPrefSize(1920, 1080);
 
+        this.setPrefSize(1280, 800);
         terrainGrid = new TerrainType[rows][cols];
         generatePlateau();
+
+        this.widthProperty().addListener((obs, oldVal, newVal) -> afficherTerrain());
+        this.heightProperty().addListener((obs, oldVal, newVal) -> afficherTerrain());
     }
 
     public int getRows() { return rows; }
@@ -40,8 +39,8 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
-    public void generateIsland(int rows, int cols) {
-        this.getChildren().clear();
+    // 🔧 Correction : version sans arguments (utilisée par GameSetup)
+    public void generateIsland() {
         int centerX = rows / 2;
         int centerY = cols / 2;
         int radius = Math.min(rows, cols) / 3;
@@ -60,9 +59,8 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
-    public void generateCityTerrain(int rows, int cols) {
-        this.getChildren().clear();
-
+    // 🔧 Correction : version sans arguments (utilisée par GameSetup)
+    public void generateCityTerrain() {
         double centerX = rows / 2.0;
         double centerY = cols / 2.0;
         double minDim = Math.min(rows, cols) / 4.0;
@@ -80,10 +78,24 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
-    private void afficherTerrain() {
-        double hexHeight = tileSize * 2;
+    public void afficherTerrain() {
+        double hexHeight = 2 * tileSize;
         double hexWidth = Math.sqrt(3) * tileSize;
+        double vertSpacing = hexHeight * 3.0 / 4.0;
 
+        Unit[][] sauvegardeUnites = new Unit[rows][cols];
+        if (grille != null) {
+            for (int row = 0; row < rows; row++) {
+                for (int col = 0; col < cols; col++) {
+                    HexagonTile ancienne = grille[row][col];
+                    if (ancienne != null && ancienne.getUnit() != null) {
+                        sauvegardeUnites[row][col] = ancienne.getUnit();
+                    }
+                }
+            }
+        }
+
+        this.getChildren().removeIf(node -> node instanceof HexagonTile);
         grille = new HexagonTile[rows][cols];
 
         for (int row = 0; row < rows; row++) {
@@ -91,11 +103,17 @@ public class Plateau extends Pane implements Serializable {
                 TerrainType type = terrainGrid[row][col];
                 HexagonTile hex = new HexagonTile(type, row, col);
 
-                double x = col * hexWidth * 0.75;
-                double y = row * hexHeight + (col % 2) * (hexHeight / 2);
+                double x = col * hexWidth;
+                if (row % 2 != 0) x += hexWidth / 2;
+                double y = paddingTop + row * vertSpacing;
 
                 hex.setLayoutX(x);
                 hex.setLayoutY(y);
+
+                if (sauvegardeUnites[row][col] != null) {
+                    hex.setUnit(sauvegardeUnites[row][col]);
+                }
+
                 this.getChildren().add(hex);
                 grille[row][col] = hex;
             }
@@ -118,31 +136,45 @@ public class Plateau extends Pane implements Serializable {
         }
     }
 
-    public void afficherConsole() {
-        System.out.println("=== Plateau de jeu ===");
-        for (int row = 0; row < rows; row++) {
-            if (row % 2 != 0) System.out.print("  ");
-            for (int col = 0; col < cols; col++) {
-                HexagonTile tile = grille[row][col];
-                Unit u = tile.getUnit();
-                System.out.print(u != null ? "[" + u.getName().charAt(0) + "] " : "[ ] ");
-            }
-            System.out.println();
-        }
-    }
-
     public void refreshVisibility() {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
-                grille[row][col].updateDisplay();
+                HexagonTile tile = grille[row][col];
+                if (tile != null) tile.updateDisplay();
             }
         }
     }
 
     public boolean isReachable(HexagonTile from, HexagonTile to, int movementPoints) {
-        if (from == null || to == null) return false;
-        int cost = calculateMovementCostPath(from, to);
-        return cost <= movementPoints;
+        return calculateMovementCostPath(from, to) <= movementPoints;
+    }
+
+    public int calculateMovementCostPath(HexagonTile from, HexagonTile to) {
+        return getMovementCost(to);
+    }
+
+    public int getMovementCost(HexagonTile tile) {
+        if (tile == null) return Integer.MAX_VALUE;
+        return tile.getTerrainType().getMoveCost();
+    }
+
+    public List<HexagonTile> getAdjacentTiles(HexagonTile from) {
+        List<HexagonTile> neighbors = new ArrayList<>();
+        int row = from.getRow();
+        int col = from.getCol();
+
+        int[][] offsetsEven = {{-1, 0}, {-1, -1}, {0, -1}, {1, 0}, {0, 1}, {-1, 1}};
+        int[][] offsetsOdd = {{-1, 0}, {1, -1}, {0, -1}, {1, 0}, {1, 1}, {0, 1}};
+        int[][] offsets = (col % 2 == 0) ? offsetsEven : offsetsOdd;
+
+        for (int[] offset : offsets) {
+            int newRow = row + offset[0];
+            int newCol = col + offset[1];
+            HexagonTile neighbor = getCase(newRow, newCol);
+            if (neighbor != null) neighbors.add(neighbor);
+        }
+
+        return neighbors;
     }
 
     public boolean isVisible(HexagonTile tile) {
@@ -156,8 +188,7 @@ public class Plateau extends Pane implements Serializable {
             for (Unit unit : p.getUnits()) {
                 if (unit.getOwner().equals(currentPlayer)) {
                     HexagonTile pos = unit.getPosition();
-                    if (pos == null) continue;
-                    if (calculerDistance(pos, tile) <= unit.getVisionRange()) {
+                    if (pos != null && calculerDistance(pos, tile) <= unit.getVisionRange()) {
                         return true;
                     }
                 }
@@ -166,7 +197,7 @@ public class Plateau extends Pane implements Serializable {
         return false;
     }
 
-    private int hexDistance(HexagonTile a, HexagonTile b) {
+    private int calculerDistance(HexagonTile a, HexagonTile b) {
         int colA = a.getCol();
         int rowA = a.getRow() - (a.getCol() - (a.getCol() & 1)) / 2;
 
@@ -179,84 +210,7 @@ public class Plateau extends Pane implements Serializable {
         return (Math.abs(dx) + Math.abs(dy) + Math.abs(dx + dy)) / 2;
     }
 
-    private int calculerDistance(HexagonTile a, HexagonTile b) {
-        return hexDistance(a, b);
-    }
-
     public TerrainType getTerrain(int row, int col) {
         return terrainGrid[row][col];
-    }
-
-    public int getMovementCost(HexagonTile tile) {
-        if (tile == null) return Integer.MAX_VALUE;
-        TerrainType type = getTerrain(tile.getRow(), tile.getCol());
-
-        switch (type) {
-            case PLAINE: return 1;
-            case FORET: return 2;
-            case COLLINE: return 2;
-            case FORTERESSE: return 1;
-            case MONTAGNE: return 3;
-            case EAU: return 999;
-            default: return 1;
-        }
-    }
-
-    public int calculateMovementCostPath(HexagonTile from, HexagonTile to) {
-        return getMovementCost(to);
-    }
-
-    public List<HexagonTile> getReachableTiles(Unit unit) {
-        List<HexagonTile> reachable = new ArrayList<>();
-        Map<HexagonTile, Integer> costMap = new HashMap<>();
-        Queue<HexagonTile> queue = new LinkedList<>();
-
-        HexagonTile start = unit.getPosition();
-        costMap.put(start, 0);
-        queue.add(start);
-
-        while (!queue.isEmpty()) {
-            HexagonTile current = queue.poll();
-            int currentCost = costMap.get(current);
-
-            for (HexagonTile neighbor : getAdjacentTiles(current)) {
-                int moveCost = getMovementCost(neighbor);
-                if (moveCost >= 999) continue;
-
-                int newCost = currentCost + moveCost;
-                if (newCost <= unit.getCurrentMovement()
-                        && (!costMap.containsKey(neighbor) || newCost < costMap.get(neighbor))) {
-                    costMap.put(neighbor, newCost);
-                    reachable.add(neighbor);
-                    queue.add(neighbor);
-                }
-            }
-        }
-
-        return reachable;
-    }
-
-    // ✅ Nouvelle méthode : retourne les 6 voisins d’une tuile
-    public List<HexagonTile> getAdjacentTiles(HexagonTile from) {
-        List<HexagonTile> neighbors = new ArrayList<>();
-
-        int row = from.getRow();
-        int col = from.getCol();
-
-        int[][] offsetsEven = {{-1, 0}, {-1, -1}, {0, -1}, {1, 0}, {0, 1}, {-1, 1}};
-        int[][] offsetsOdd  = {{-1, 0}, {1, -1}, {0, -1}, {1, 0}, {1, 1}, {0, 1}};
-        int[][] offsets = (col % 2 == 0) ? offsetsEven : offsetsOdd;
-
-        for (int[] offset : offsets) {
-            int newRow = row + offset[0];
-            int newCol = col + offset[1];
-
-            HexagonTile neighbor = getCase(newRow, newCol);
-            if (neighbor != null) {
-                neighbors.add(neighbor);
-            }
-        }
-
-        return neighbors;
     }
 }

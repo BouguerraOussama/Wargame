@@ -5,6 +5,7 @@ import tn.isty.wargame.model.HexagonTile;
 import tn.isty.wargame.model.Player;
 import tn.isty.wargame.model.TerrainType;
 import tn.isty.wargame.model.Unit;
+import tn.isty.wargame.view.Logger;
 
 import java.util.List;
 
@@ -17,14 +18,14 @@ public class GameController {
     }
 
     public void startGame() {
-        System.out.println("🎮 Démarrage de la partie !");
+        Logger.log("🎮 Démarrage de la partie !");
         gameState.initializeGame();
         playTurn();
     }
 
     public void playTurn() {
         Player current = gameState.getCurrentPlayer();
-        System.out.println("🔁 Tour du joueur : " + current.getName());
+        Logger.log("🔁 Tour du joueur : " + current.getName());
         gameState.getBoard().refreshVisibility();
 
         for (Unit unit : current.getUnits()) {
@@ -34,7 +35,7 @@ public class GameController {
         if (current.isAI()) {
             playAITurn(current);
         } else {
-            System.out.println("🕹️ Le joueur humain doit jouer manuellement");
+            Logger.log("🕹️ Le joueur humain doit jouer manuellement");
         }
     }
 
@@ -44,7 +45,7 @@ public class GameController {
         for (Unit unit : currentPlayer.getUnits()) {
             if (unit.isAlive() && !unit.hasActed()) {
                 unit.recoverHealthIfIdle();
-                System.out.println("🔧 " + unit.getName() + " récupère des PV (repos)");
+                Logger.log("🔧 " + unit.getName() + " récupère des PV (repos)");
             }
         }
 
@@ -52,7 +53,7 @@ public class GameController {
 
         if (gameState.isGameOver()) {
             Player winner = gameState.getWinner();
-            System.out.println(winner != null
+            Logger.log(winner != null
                     ? "🎉 Partie terminée ! Gagnant : " + winner.getName()
                     : "🎯 Match nul !");
             return;
@@ -65,9 +66,9 @@ public class GameController {
         if (gameState.canMove(unit, destination)) {
             gameState.moveUnit(unit, destination);
             unit.setHasActed(true);
-            System.out.println(unit.getName() + " s’est déplacé en " + destination.getRow() + "," + destination.getCol());
+            Logger.log(unit.getName() + " s’est déplacé en " + destination.getRow() + "," + destination.getCol());
         } else {
-            System.out.println("❌ Déplacement non autorisé");
+            Logger.log("❌ Déplacement non autorisé");
         }
     }
 
@@ -78,14 +79,14 @@ public class GameController {
 
             gameState.resolveCombat(attacker, defender);
             attacker.setHasActed(true);
-            System.out.println(attacker.getName() + " attaque " + defender.getName());
+            Logger.log(attacker.getName() + " attaque " + defender.getName());
         } else {
-            System.out.println("❌ Attaque non autorisée");
+            Logger.log("❌ Attaque non autorisée");
         }
     }
 
     public void playAITurn(Player aiPlayer) {
-        System.out.println("🤖 Tour de l’IA : " + aiPlayer.getName());
+        Logger.log("🤖 Tour de l’IA : " + aiPlayer.getName());
 
         for (Unit aiUnit : aiPlayer.getUnits()) {
             if (!aiUnit.isAlive()) continue;
@@ -98,7 +99,7 @@ public class GameController {
                     if (!target.isAlive()) continue;
 
                     if (gameState.canAttack(aiUnit, target)) {
-                        System.out.println("🤖 IA attaque avec " + aiUnit.getName() + " -> " + target.getName());
+                        Logger.log("🤖 IA attaque avec " + aiUnit.getName() + " -> " + target.getName());
                         attack(aiUnit, target);
                         return; // Une action par tour
                     }
@@ -129,18 +130,18 @@ public class GameController {
                 if (to != null && gameState.canMove(aiUnit, to)) {
                     TerrainType terrain = to.getTerrainType();
                     if (terrain.getMoveCost() >= 999) {
-                        System.out.println("🌊 IA évite terrain interdit (eau)");
+                        Logger.log("🌊 IA évite terrain interdit (eau)");
                         continue;
                     }
 
-                    System.out.println("🤖 IA déplace " + aiUnit.getName() + " vers " + to.getRow() + "," + to.getCol());
+                    Logger.log("🤖 IA déplace " + aiUnit.getName() + " vers " + to.getRow() + "," + to.getCol());
                     moveUnit(aiUnit, to);
                     return; // Une action par tour
                 }
             }
 
             // 4. Si rien à faire
-            System.out.println("🤖 " + aiUnit.getName() + " reste sur place.");
+            Logger.log("🤖 " + aiUnit.getName() + " reste sur place.");
         }
 
         endTurn(); // ➡️ Fin du tour IA

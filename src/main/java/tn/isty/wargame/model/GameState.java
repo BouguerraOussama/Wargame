@@ -3,6 +3,8 @@ package tn.isty.wargame.model;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import tn.isty.wargame.view.Logger;
+
 
 public class GameState implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -35,7 +37,7 @@ public class GameState implements Serializable {
             if (unit.isAlive()) {
                 if (unit.getCurrentMovement() == unit.getMaxMovement() && !unit.wasAttackedThisTurn()) {
                     unit.recoverHealthIfIdle();
-                    System.out.println("🔧 " + unit.getName() + " récupère des PV (repos)");
+                    Logger.log("🔧 " + unit.getName() + " récupère des PV (repos)");
                 }
                 unit.setWasAttackedThisTurn(false);
                 unit.resetMovement();
@@ -74,7 +76,7 @@ public class GameState implements Serializable {
 
     public int calculateHexDistance(HexagonTile a, HexagonTile b) {
         if (a == null || b == null) {
-            System.err.println("[⚠️ ERROR] HexagonTile null in distance calculation");
+            Logger.log("[⚠️ ERROR] HexagonTile null in distance calculation");
             return Integer.MAX_VALUE;
         }
 
@@ -89,6 +91,18 @@ public class GameState implements Serializable {
         if (!unit.isAlive()) return false;
         if (destination.getUnit() != null) return false;
 
+        if (!board.isVisible(destination)) {
+            Logger.log("❌ Déplacement interdit dans une zone non visible !");
+            return false;
+        }
+
+        if (board.getMovementCost(destination) >= 999) {
+            Logger.log("🌊 Déplacement impossible : terrain infranchissable");
+            return false;
+        }
+
+
+
         int cost = board.calculateMovementCostPath(unit.getPosition(), destination);
         return cost <= unit.getCurrentMovement();
     }
@@ -97,7 +111,7 @@ public class GameState implements Serializable {
         if (unit == null || destination == null) return;
 
         if (!canMove(unit, destination)) {
-            System.out.println("❌ Déplacement refusé (coût trop élevé ou case occupée)");
+            Logger.log("❌ Déplacement refusé (coût trop élevé ou case occupée)");
             return;
         }
 
@@ -129,7 +143,7 @@ public class GameState implements Serializable {
 
     public void resolveCombat(Unit attacker, Unit defender) {
         if (!canAttack(attacker, defender)) {
-            System.out.println("❌ Combat impossible entre " + attacker + " et " + defender);
+            Logger.log("❌ Combat impossible entre " + attacker + " et " + defender);
             return;
         }
 
@@ -141,12 +155,12 @@ public class GameState implements Serializable {
         defender.receiveDamage(totalDamage);
         defender.setWasAttackedThisTurn(true);
 
-        System.out.println("💥 Dégâts infligés : " + totalDamage +
+        Logger.log("💥 Dégâts infligés : " + totalDamage +
                 " (base: " + baseDamage + ", terrain: " + terrainModifier + ", hasard: " + randomFactor + ")");
-        System.out.println("❤️ PV restants de " + defender.getName() + " : " + defender.getCurrentHealth());
+        Logger.log("❤️ PV restants de " + defender.getName() + " : " + defender.getCurrentHealth());
 
         if (!defender.isAlive()) {
-            System.out.println("☠️ " + defender.getName() + " est mort !");
+            Logger.log("☠️ " + defender.getName() + " est mort !");
             HexagonTile tile = defender.getPosition();
             if (tile != null) {
                 tile.setUnit(null);

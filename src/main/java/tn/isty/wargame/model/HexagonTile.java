@@ -1,28 +1,33 @@
 package tn.isty.wargame.model;
 
-import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Polygon;
-import java.io.Serializable;
 import javafx.animation.FillTransition;
-import javafx.util.Duration;
-import javafx.scene.shape.Shape;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Polygon;
+import javafx.util.Duration;
 import tn.isty.wargame.controller.GameController;
+import tn.isty.wargame.view.Logger;
+
+import java.io.InputStream;
+import java.io.Serializable;
 
 public class HexagonTile extends StackPane implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final double SIZE = 40;
 
-    // Pour éviter la dépendance statique, mieux vaut passer gameState ou controller via setter
-    private static GameState sharedGameState = null; 
+    private static GameState sharedGameState = null;
 
     private TerrainType terrainType;
     private Unit unit;
     private int row;
     private int col;
 
+    private transient Polygon hexShape;
+    private transient Polygon fogOverlay;
     private transient Label unitLabel;
     private transient Tooltip tooltip;
 
@@ -35,100 +40,94 @@ public class HexagonTile extends StackPane implements Serializable {
 
         initUI();
         setupEventHandlers();
-
         updateDisplay();
     }
 
     private void initUI() {
-        Polygon hex = new Polygon();
+        hexShape = new Polygon();
+        fogOverlay = new Polygon();
+
         for (int i = 0; i < 6; i++) {
             double angle = Math.toRadians(60 * i - 30);
             double x = SIZE * Math.cos(angle);
             double y = SIZE * Math.sin(angle);
-            hex.getPoints().addAll(x, y);
+            hexShape.getPoints().addAll(x, y);
+            fogOverlay.getPoints().addAll(x, y);
         }
-        hex.setStroke(Color.BLACK);
-        hex.setFill(getColorForTerrain(terrainType));
 
-        this.setPrefSize(SIZE * 2, SIZE * 2);
-        this.getChildren().add(hex);
+        hexShape.setStroke(Color.BLACK);
+
+        fogOverlay.setFill(Color.rgb(0, 0, 0, 0.6)); // gris semi-transparent
+        fogOverlay.setVisible(false); // visible uniquement si le tile est dans le brouillard
+        fogOverlay.setMouseTransparent(true);
 
         unitLabel = new Label();
-        unitLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: black;");
+        unitLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: black;");
         unitLabel.setMouseTransparent(true);
-        this.getChildren().add(unitLabel);
 
+        this.setPrefSize(SIZE * 2, SIZE * 2);
+        this.getChildren().addAll(hexShape, fogOverlay, unitLabel);
         tooltip = new Tooltip();
     }
 
     private void setupEventHandlers() {
         this.setOnMouseClicked(event -> {
             if (sharedGameState == null) {
-                System.out.println("❌ sharedGameState est null");
+                Logger.log("❌ sharedGameState est null");
                 return;
             }
+
             Player current = sharedGameState.getCurrentPlayer();
-            // Instancier GameController une fois à l'extérieur idéalement
             GameController controller = new GameController(sharedGameState);
 
             if (unit != null && unit.getOwner().equals(current)) {
                 selectedUnit = unit;
-                System.out.println("✅ Sélection : " + unit.getName());
-
+                Logger.log("✅ Sélection : " + unit.getName());
             } else if (selectedUnit != null && unit != null && !unit.getOwner().equals(current)) {
-                System.out.println("⚔️ Attaque de " + selectedUnit.getName() + " sur " + unit.getName());
+                Logger.log("⚔️ Attaque de " + selectedUnit.getName() + " sur " + unit.getName());
                 controller.attack(selectedUnit, unit);
                 selectedUnit = null;
-
             } else if (selectedUnit != null && unit == null) {
-                System.out.println("🚶 Tentative de déplacement...");
+                Logger.log("🚶 Déplacement...");
                 controller.moveUnit(selectedUnit, this);
                 selectedUnit = null;
-
             } else {
-                System.out.println("🟦 Clic ignoré");
+                Logger.log("🟦 Clic ignoré");
             }
         });
     }
 
-    private Color getColorForTerrain(TerrainType type) {
-        switch (type) {
-            case PLAINE: return Color.LIGHTGREEN;
-            case FORET: return Color.DARKGREEN;
-            case MONTAGNE: return Color.DIMGRAY;
-            case COLLINE: return Color.SANDYBROWN;
-            case FORTERESSE: return Color.DARKRED;
-            case EAU: return Color.BLUE;
-            default: return Color.GRAY;
-        }
-    }
-
     public void updateDisplay() {
-        if (unitLabel == null) {
-            initUI(); // en cas de désérialisation, réinitialiser l’UI
+        if (unitLabel == null || hexShape == null || fogOverlay == null) {
+            initUI();
         }
 
         Player current = sharedGameState != null ? sharedGameState.getCurrentPlayer() : null;
 
         boolean visible = sharedGameState != null && (
-            sharedGameState.getBoard().isVisible(this) ||
-            (unit != null && current != null && unit.getOwner().equals(current))
+                sharedGameState.getBoard().isVisible(this) ||
+                (unit != null && current != null && unit.getOwner().equals(current))
         );
 
-        Shape hexShape = (Shape) getChildren().get(0);
+        Image texture = loadTerrainTexture(terrainType);
+        if (texture != null) {
+            hexShape.setFill(new ImagePattern(texture));
+        } else {
+            hexShape.setFill(getColorForTerrain(terrainType));
+        }
+
+        fogOverlay.setVisible(!visible);
 
         if (!visible) {
-            hexShape.setFill(Color.DARKGRAY);
             unitLabel.setText("");
             Tooltip.uninstall(this, tooltip);
             return;
         }
 
-        hexShape.setFill(getColorForTerrain(terrainType));
-
         if (unit != null) {
             unitLabel.setText(unit.getName() + " (" + unit.getType() + ")");
             unitLabel.setTextFill(current != null && unit.getOwner().equals(current) ? Color.BLUE : Color.CRIMSON);
+
             tooltip.setText("PV : " + unit.getCurrentHealth() +
                     "\nTerrain : " + terrainType +
                     "\nCoût déplacement : " + terrainType.getMoveCost());
@@ -142,7 +141,6 @@ public class HexagonTile extends StackPane implements Serializable {
     }
 
     public void playAttackAnimation() {
-        Shape hexShape = (Shape) getChildren().get(0);
         FillTransition ft = new FillTransition(Duration.millis(300), hexShape);
         ft.setFromValue(Color.RED);
         ft.setToValue(getColorForTerrain(terrainType));
@@ -151,15 +149,40 @@ public class HexagonTile extends StackPane implements Serializable {
         ft.play();
     }
 
-    // Getters / setters
-
-    public TerrainType getTerrainType() {
-        return terrainType;
+    private Image loadTerrainTexture(TerrainType type) {
+        String filename = switch (type) {
+            case PLAINE -> "field.jpg";
+            case FORET -> "foret.jpg";
+            case MONTAGNE -> "mountain.jpg";
+            case COLLINE -> "hill.jpg";
+            case FORTERESSE -> "mountain.jpg";
+            case EAU -> "eau.jpg";
+        };
+        InputStream is = getClass().getResourceAsStream("/images/" + filename);
+        if (is == null) {
+            Logger.log("❌ Image terrain non trouvée : " + filename);
+            return null;
+        }
+        return new Image(is);
     }
 
-    public Unit getUnit() {
-        return unit;
+    private Color getColorForTerrain(TerrainType type) {
+        return switch (type) {
+            case PLAINE -> Color.LIGHTGREEN;
+            case FORET -> Color.DARKGREEN;
+            case MONTAGNE -> Color.DIMGRAY;
+            case COLLINE -> Color.SANDYBROWN;
+            case FORTERESSE -> Color.DARKRED;
+            case EAU -> Color.LIGHTBLUE;
+            default -> Color.GRAY;
+        };
     }
+
+    // --- Getters & Setters
+
+    public TerrainType getTerrainType() { return terrainType; }
+
+    public Unit getUnit() { return unit; }
 
     public void setUnit(Unit unit) {
         this.unit = unit;
@@ -172,15 +195,10 @@ public class HexagonTile extends StackPane implements Serializable {
         updateDisplay();
     }
 
-    public int getRow() {
-        return row;
-    }
+    public int getRow() { return row; }
 
-    public int getCol() {
-        return col;
-    }
+    public int getCol() { return col; }
 
-    // Static accessors for sharedGameState (à documenter clairement)
     public static void setSharedGameState(GameState gameState) {
         sharedGameState = gameState;
     }
