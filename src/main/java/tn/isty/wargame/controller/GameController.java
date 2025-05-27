@@ -10,14 +10,26 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Contrôleur principal de la logique du jeu Wargame.
+ * Il gère le déroulement des tours, les actions des joueurs et de l'IA,
+ * ainsi que les interactions entre les unités (mouvement, combat).
+ */
 public class GameController {
 
     private final GameState gameState;
 
+    /**
+     * Initialise le contrôleur avec un état de jeu donné.
+     * @param gameState état de la partie
+     */
     public GameController(GameState gameState) {
         this.gameState = gameState;
     }
 
+    /**
+     * Lance le jeu : initialise les unités et commence le tour du premier joueur.
+     */
     public void startGame() {
         Logger.log("🎮 Démarrage de la partie !");
         gameState.initializeGame();
@@ -25,12 +37,17 @@ public class GameController {
         playTurn();
     }
 
+    /**
+     * Joue le tour du joueur courant.
+     * L'IA joue automatiquement, tandis que les humains interagissent manuellement.
+     */
     public void playTurn() {
         Player current = gameState.getCurrentPlayer();
         HexagonTile.setSharedGameState(gameState);
         Logger.log("🔁 Tour du joueur : " + current.getName());
         gameState.getBoard().refreshVisibility();
 
+        // Réinitialisation des états d'action des unités
         current.getUnits().forEach(unit -> unit.setHasActed(false));
 
         if (current.isAI()) {
@@ -40,9 +57,14 @@ public class GameController {
         }
     }
 
+    /**
+     * Termine le tour du joueur courant, gère la régénération des unités
+     * et passe au joueur suivant. Déclenche la fin de partie si nécessaire.
+     */
     public void endTurn() {
         Player current = gameState.getCurrentPlayer();
 
+        // Régénère les unités qui n'ont pas agi
         for (Unit unit : current.getUnits()) {
             if (unit.isAlive() && !unit.hasActed()) {
                 unit.recoverHealthIfIdle();
@@ -63,17 +85,27 @@ public class GameController {
         playTurn();
     }
 
+    /**
+     * Déplace une unité vers une case voisine si c'est possible.
+     * @param unit unité à déplacer
+     * @param destination case cible
+     */
     public void moveUnit(Unit unit, HexagonTile destination) {
         if (gameState.canMove(unit, destination)) {
             gameState.moveUnit(unit, destination);
             unit.setHasActed(true);
             Logger.log(unit.getName() + " s’est déplacé en " + destination.getRow() + "," + destination.getCol());
-            gameState.getBoard().updateAllTiles(); // 🔄 Met à jour l’affichage
+            gameState.getBoard().updateAllTiles(); // 🔄 Mise à jour graphique
         } else {
             Logger.log("❌ Déplacement non autorisé");
         }
     }
 
+    /**
+     * Fait attaquer une unité une autre si c'est autorisé.
+     * @param attacker unité attaquante
+     * @param defender unité défenseuse
+     */
     public void attack(Unit attacker, Unit defender) {
         if (gameState.canAttack(attacker, defender)) {
             HexagonTile tile = defender.getPosition();
@@ -82,12 +114,16 @@ public class GameController {
             gameState.resolveCombat(attacker, defender);
             attacker.setHasActed(true);
             Logger.log(attacker.getName() + " attaque " + defender.getName());
-            gameState.getBoard().updateAllTiles(); // 🔄
+            gameState.getBoard().updateAllTiles(); // 🔄 MAJ visuelle
         } else {
             Logger.log("❌ Attaque non autorisée");
         }
     }
 
+    /**
+     * Joue automatiquement le tour d’un joueur IA.
+     * @param aiPlayer joueur IA
+     */
     public void playAITurn(Player aiPlayer) {
         Logger.log("🤖 Tour IA : " + aiPlayer.getName());
 
@@ -98,15 +134,21 @@ public class GameController {
         playNextAIAction(units, 0);
     }
 
+    /**
+     * Exécute récursivement les actions de chaque unité IA avec un délai entre les actions.
+     * @param units liste des unités IA restantes
+     * @param index indice de l’unité actuelle
+     */
     private void playNextAIAction(List<Unit> units, int index) {
         if (index >= units.size()) {
-            endTurn();
+            endTurn(); // Fin du tour IA
             return;
         }
 
         Unit aiUnit = units.get(index);
         PauseTransition pause = new PauseTransition(Duration.seconds(0.6));
         pause.setOnFinished(e -> Platform.runLater(() -> {
+            // Cherche une cible dans la portée d'attaque
             Optional<Unit> target = gameState.getAllPlayers().stream()
                     .filter(p -> p != aiUnit.getOwner())
                     .flatMap(p -> p.getUnits().stream())
@@ -118,6 +160,7 @@ public class GameController {
                 Logger.log("🤖 IA attaque avec " + aiUnit.getName() + " -> " + target.get().getName());
                 attack(aiUnit, target.get());
             } else {
+                // Sinon, déplacer vers l’ennemi le plus proche
                 Unit closest = findClosestEnemy(aiUnit, aiUnit.getOwner());
                 if (closest != null) {
                     HexagonTile next = findBestStepTowards(aiUnit, closest.getPosition());
@@ -134,11 +177,17 @@ public class GameController {
             }
 
             gameState.getBoard().updateAllTiles();
-            playNextAIAction(units, index + 1);
+            playNextAIAction(units, index + 1); // Action suivante
         }));
         pause.play();
     }
 
+    /**
+     * Trouve l’ennemi vivant le plus proche d’une unité IA.
+     * @param aiUnit unité IA
+     * @param aiPlayer joueur IA
+     * @return unité ennemie la plus proche
+     */
     private Unit findClosestEnemy(Unit aiUnit, Player aiPlayer) {
         return gameState.getAllPlayers().stream()
                 .filter(p -> p != aiPlayer)
@@ -149,6 +198,12 @@ public class GameController {
                 .orElse(null);
     }
 
+    /**
+     * Trouve la meilleure case adjacente pour se rapprocher d’un objectif.
+     * @param unit unité à déplacer
+     * @param goal case cible
+     * @return meilleure case voisine
+     */
     private HexagonTile findBestStepTowards(Unit unit, HexagonTile goal) {
         return gameState.getBoard().getAdjacentTiles(unit.getPosition()).stream()
                 .filter(tile -> tile.getUnit() == null)
@@ -158,6 +213,10 @@ public class GameController {
                 .orElse(null);
     }
 
+    /**
+     * Met en surbrillance les cases dans la portée d’attaque d’une unité.
+     * @param unit unité sélectionnée
+     */
     public void highlightAttackRange(Unit unit) {
         if (unit == null || unit.getPosition() == null) return;
 
@@ -178,6 +237,9 @@ public class GameController {
         }
     }
 
+    /**
+     * Supprime tous les surlignages de la carte.
+     */
     public void clearHighlights() {
         Plateau plateau = gameState.getBoard();
         for (int row = 0; row < plateau.getRows(); row++) {

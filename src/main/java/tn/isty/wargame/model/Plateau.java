@@ -4,17 +4,29 @@ import javafx.scene.layout.Pane;
 import java.io.Serializable;
 import java.util.*;
 
+/**
+ * Représente le plateau de jeu hexagonal.
+ * Gère l'affichage des tuiles, la génération du terrain, le placement des unités,
+ * la visibilité et les déplacements.
+ */
 public class Plateau extends Pane implements Serializable {
+
     private static final long serialVersionUID = 1L;
+
     private static final double tileSize = 40;
     private static final double paddingTop = 60;
 
     private int rows;
     private int cols;
 
-    private HexagonTile[][] grille;
-    private TerrainType[][] terrainGrid;
+    private HexagonTile[][] grille; // Grille visuelle des tuiles hexagonales
+    private TerrainType[][] terrainGrid; // Grille logique des types de terrain
 
+    /**
+     * Initialise un plateau vide de dimensions données.
+     * @param rows nombre de lignes
+     * @param cols nombre de colonnes
+     */
     public Plateau(int rows, int cols) {
         this.rows = rows;
         this.cols = cols;
@@ -23,6 +35,7 @@ public class Plateau extends Pane implements Serializable {
         terrainGrid = new TerrainType[rows][cols];
         generatePlateau();
 
+        // Met à jour l'affichage quand la taille change
         this.widthProperty().addListener((obs, oldVal, newVal) -> afficherTerrain());
         this.heightProperty().addListener((obs, oldVal, newVal) -> afficherTerrain());
     }
@@ -30,6 +43,7 @@ public class Plateau extends Pane implements Serializable {
     public int getRows() { return rows; }
     public int getCols() { return cols; }
 
+    /** Remplit le plateau de plaine par défaut */
     private void generatePlateau() {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
@@ -39,6 +53,7 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
+    /** Génère un terrain avec île centrale circulaire */
     public void generateIsland() {
         int centerX = rows / 2;
         int centerY = cols / 2;
@@ -58,6 +73,7 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
+    /** Génère un terrain avec une structure urbaine centrale */
     public void generateCityTerrain() {
         double centerX = rows / 2.0;
         double centerY = cols / 2.0;
@@ -66,7 +82,6 @@ public class Plateau extends Pane implements Serializable {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 double dist = Math.sqrt(Math.pow(row - centerX, 2) + Math.pow(col - centerY, 2));
-
                 if (dist < minDim * 0.5) {
                     terrainGrid[row][col] = TerrainType.FORTERESSE;
                 } else if (dist < minDim * 0.7) {
@@ -90,6 +105,7 @@ public class Plateau extends Pane implements Serializable {
         afficherTerrain();
     }
 
+    /** Affiche toutes les tuiles du terrain */
     public void afficherTerrain() {
         double hexHeight = 2 * tileSize;
         double hexWidth = Math.sqrt(3) * tileSize;
@@ -140,6 +156,9 @@ public class Plateau extends Pane implements Serializable {
         }
     }
 
+    /**
+     * Place une unité sur une case vide.
+     */
     public void placerUnite(int row, int col, Unit unite) {
         HexagonTile tile = getCase(row, col);
         if (tile != null && tile.getUnit() == null) {
@@ -148,6 +167,7 @@ public class Plateau extends Pane implements Serializable {
         }
     }
 
+    /** Met à jour la visibilité de toutes les cases */
     public void refreshVisibility() {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
@@ -170,6 +190,9 @@ public class Plateau extends Pane implements Serializable {
         return tile.getTerrainType().getMoveCost();
     }
 
+    /**
+     * Récupère les tuiles adjacentes à une case donnée (hexagone)
+     */
     public List<HexagonTile> getAdjacentTiles(HexagonTile from) {
         List<HexagonTile> neighbors = new ArrayList<>();
         int row = from.getRow();
@@ -177,7 +200,7 @@ public class Plateau extends Pane implements Serializable {
 
         int[][] offsetsEven = {{-1, 0}, {-1, -1}, {0, -1}, {1, 0}, {0, 1}, {-1, 1}};
         int[][] offsetsOdd = {{-1, 0}, {1, -1}, {0, -1}, {1, 0}, {1, 1}, {0, 1}};
-        int[][] offsets = (row % 2 == 0) ? offsetsEven : offsetsOdd;  // ✅ Correction ici
+        int[][] offsets = (row % 2 == 0) ? offsetsEven : offsetsOdd;
 
         for (int[] offset : offsets) {
             int newRow = row + offset[0];
@@ -188,7 +211,10 @@ public class Plateau extends Pane implements Serializable {
 
         return neighbors;
     }
-    
+
+    /**
+     * Vérifie si une tuile est visible par les unités du joueur courant
+     */
     public boolean isVisible(HexagonTile tile) {
         if (tile == null) return false;
 
@@ -208,9 +234,7 @@ public class Plateau extends Pane implements Serializable {
         return false;
     }
 
-
-
-
+    /** Calcule la distance entre deux tuiles sur une grille hexagonale */
     private int calculerDistance(HexagonTile a, HexagonTile b) {
         int colA = a.getCol();
         int rowA = a.getRow() - (a.getCol() - (a.getCol() & 1)) / 2;
@@ -228,6 +252,7 @@ public class Plateau extends Pane implements Serializable {
         return terrainGrid[row][col];
     }
 
+    /** Met à jour visuellement toutes les tuiles */
     public void updateAllTiles() {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
