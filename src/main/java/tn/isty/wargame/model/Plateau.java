@@ -177,7 +177,7 @@ public class Plateau extends Pane implements Serializable {
 
         int[][] offsetsEven = {{-1, 0}, {-1, -1}, {0, -1}, {1, 0}, {0, 1}, {-1, 1}};
         int[][] offsetsOdd = {{-1, 0}, {1, -1}, {0, -1}, {1, 0}, {1, 1}, {0, 1}};
-        int[][] offsets = (row % 2 == 0) ? offsetsEven : offsetsOdd;  // ✅ Correction ici
+        int[][] offsets = (row % 2 == 0) ? offsetsEven : offsetsOdd;  // Correction ici
 
         for (int[] offset : offsets) {
             int newRow = row + offset[0];

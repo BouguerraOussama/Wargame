@@ -76,7 +76,7 @@ public class GameState implements Serializable {
 
     public int calculateHexDistance(HexagonTile a, HexagonTile b) {
         if (a == null || b == null) {
-            Logger.log("[⚠️ ERROR] HexagonTile null in distance calculation");
+            Logger.log("[ ERROR] HexagonTile null in distance calculation");
             return Integer.MAX_VALUE;
         }
 
@@ -92,18 +92,18 @@ public class GameState implements Serializable {
         if (destination.getUnit() != null) return false;
 
         if (!board.isVisible(destination)) {
-            Logger.log("❌ Déplacement interdit dans une zone non visible !");
+            Logger.log(" Déplacement interdit dans une zone non visible !");
             return false;
         }
 
         if (board.getMovementCost(destination) >= 999) {
-            Logger.log("🌊 Déplacement impossible : terrain infranchissable");
+            Logger.log(" Déplacement impossible : terrain infranchissable");
             return false;
         }
 
         List<HexagonTile> adjacentes = board.getAdjacentTiles(unit.getPosition());
         if (!adjacentes.contains(destination)) {
-            Logger.log("❌ Déplacement interdit : seule une case adjacente est autorisée");
+            Logger.log(" Déplacement interdit : seule une case adjacente est autorisée");
             return false;
         }
 
@@ -115,7 +115,7 @@ public class GameState implements Serializable {
         if (unit == null || destination == null) return;
 
         if (!canMove(unit, destination)) {
-            Logger.log("❌ Déplacement refusé (coût trop élevé ou case occupée)");
+            Logger.log("Déplacement refusé (coût trop élevé ou case occupée)");
             return;
         }
 
@@ -147,7 +147,7 @@ public class GameState implements Serializable {
 
     public void resolveCombat(Unit attacker, Unit defender) {
         if (!canAttack(attacker, defender)) {
-            Logger.log("❌ Combat impossible entre " + attacker + " et " + defender);
+            Logger.log(" Combat impossible entre " + attacker + " et " + defender);
             return;
         }
 
@@ -159,9 +159,9 @@ public class GameState implements Serializable {
         defender.receiveDamage(totalDamage);
         defender.setWasAttackedThisTurn(true);
 
-        Logger.log("💥 Dégâts infligés : " + totalDamage +
+        Logger.log(" Dégâts infligés : " + totalDamage +
                 " (base: " + baseDamage + ", terrain: " + terrainModifier + ", hasard: " + randomFactor + ")");
-        Logger.log("❤️ PV restants de " + defender.getName() + " : " + defender.getCurrentHealth());
+        Logger.log(" PV restants de " + defender.getName() + " : " + defender.getCurrentHealth());
 
         if (!defender.isAlive()) {
             Logger.log("☠️ " + defender.getName() + " est mort !");

@@ -19,7 +19,7 @@ public class GameController {
     }
 
     public void startGame() {
-        Logger.log("🎮 Démarrage de la partie !");
+        Logger.log(" Démarrage de la partie !");
         gameState.initializeGame();
         HexagonTile.setSharedGameState(gameState);
         playTurn();
@@ -28,7 +28,7 @@ public class GameController {
     public void playTurn() {
         Player current = gameState.getCurrentPlayer();
         HexagonTile.setSharedGameState(gameState);
-        Logger.log("🔁 Tour du joueur : " + current.getName());
+        Logger.log(" Tour du joueur : " + current.getName());
         gameState.getBoard().refreshVisibility();
 
         current.getUnits().forEach(unit -> unit.setHasActed(false));
@@ -36,7 +36,7 @@ public class GameController {
         if (current.isAI()) {
             playAITurn(current);
         } else {
-            Logger.log("🕹️ Le joueur humain doit jouer manuellement");
+            Logger.log(" Le joueur humain doit jouer manuellement");
         }
     }
 
@@ -55,8 +55,8 @@ public class GameController {
         if (gameState.isGameOver()) {
             Player winner = gameState.getWinner();
             Logger.log(winner != null
-                    ? "🎉 Partie terminée ! Gagnant : " + winner.getName()
-                    : "🎯 Match nul !");
+                    ? " Partie terminée ! Gagnant : " + winner.getName()
+                    : " Match nul !");
             return;
         }
 
@@ -68,9 +68,9 @@ public class GameController {
             gameState.moveUnit(unit, destination);
             unit.setHasActed(true);
             Logger.log(unit.getName() + " s’est déplacé en " + destination.getRow() + "," + destination.getCol());
-            gameState.getBoard().updateAllTiles(); // 🔄 Met à jour l’affichage
+            gameState.getBoard().updateAllTiles(); //  Met à jour l’affichage
         } else {
-            Logger.log("❌ Déplacement non autorisé");
+            Logger.log(" Déplacement non autorisé");
         }
     }
 
@@ -82,14 +82,14 @@ public class GameController {
             gameState.resolveCombat(attacker, defender);
             attacker.setHasActed(true);
             Logger.log(attacker.getName() + " attaque " + defender.getName());
-            gameState.getBoard().updateAllTiles(); // 🔄
+            gameState.getBoard().updateAllTiles();
         } else {
-            Logger.log("❌ Attaque non autorisée");
+            Logger.log(" Attaque non autorisée");
         }
     }
 
     public void playAITurn(Player aiPlayer) {
-        Logger.log("🤖 Tour IA : " + aiPlayer.getName());
+        Logger.log("Tour IA : " + aiPlayer.getName());
 
         List<Unit> units = aiPlayer.getUnits().stream()
                 .filter(u -> u.isAlive() && !u.hasActed())
@@ -115,21 +115,21 @@ public class GameController {
                     .findFirst();
 
             if (target.isPresent()) {
-                Logger.log("🤖 IA attaque avec " + aiUnit.getName() + " -> " + target.get().getName());
+                Logger.log(" IA attaque avec " + aiUnit.getName() + " -> " + target.get().getName());
                 attack(aiUnit, target.get());
             } else {
                 Unit closest = findClosestEnemy(aiUnit, aiUnit.getOwner());
                 if (closest != null) {
                     HexagonTile next = findBestStepTowards(aiUnit, closest.getPosition());
                     if (next != null) {
-                        Logger.log("🤖 IA déplace " + aiUnit.getName() + " vers " +
+                        Logger.log("IA déplace " + aiUnit.getName() + " vers " +
                                 next.getRow() + "," + next.getCol());
                         moveUnit(aiUnit, next);
                     } else {
-                        Logger.log("🤖 " + aiUnit.getName() + " reste sur place (aucun chemin)");
+                        Logger.log(" " + aiUnit.getName() + " reste sur place (aucun chemin)");
                     }
                 } else {
-                    Logger.log("🤖 Aucun ennemi trouvé pour " + aiUnit.getName());
+                    Logger.log(" Aucun ennemi trouvé pour " + aiUnit.getName());
                 }
             }
 

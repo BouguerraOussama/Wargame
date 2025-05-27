@@ -245,7 +245,7 @@ public class HexagonTile extends StackPane implements Serializable {
         if (is != null) {
             return new Image(is);
         } else {
-            Logger.log("❌ Sprite non trouvé : " + unit.getSpriteFilename());
+            Logger.log(" Sprite non trouvé : " + unit.getSpriteFilename());
             return null;
         }
     }

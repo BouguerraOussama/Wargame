@@ -31,12 +31,12 @@ public class GameMenu {
                     ambiance = new AudioClip(audioUrl.toExternalForm());
                     ambiance.setCycleCount(AudioClip.INDEFINITE);
                     ambiance.play();
-                    System.out.println("🎵 Musique d’ambiance lancée !");
+                    System.out.println(" Musique d’ambiance lancée !");
                 } else {
-                    System.err.println("❌ Fichier audio introuvable");
+                    System.err.println(" Fichier audio introuvable");
                 }
             } catch (Exception e) {
-                System.err.println("❌ Erreur chargement audio : " + e.getMessage());
+                System.err.println(" Erreur chargement audio : " + e.getMessage());
             }
         }
 
@@ -66,13 +66,13 @@ public class GameMenu {
             String chemin = System.getProperty("user.dir") + "/savegame.ser";
             File file = new File(chemin);
             if (!file.exists()) {
-                System.err.println("❌ Aucun fichier de sauvegarde trouvé.");
+                System.err.println(" Aucun fichier de sauvegarde trouvé.");
                 return;
             }
 
             GameState loaded = SaveManager.charger(chemin);
             if (loaded == null) {
-                System.err.println("❌ Erreur lors du chargement.");
+                System.err.println(" Erreur lors du chargement.");
                 return;
             }
 

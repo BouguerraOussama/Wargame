@@ -8,7 +8,7 @@ public class Player implements Serializable {
     private String name;
     private List<Unit> units;
     private boolean isAI;
-    private ArmyType armyType; // ✅ pour gérer les armées personnalisées
+    private ArmyType armyType; // pour gérer les armées personnalisées
 
     public Player(String name, boolean isAI) {
         this.name = name;

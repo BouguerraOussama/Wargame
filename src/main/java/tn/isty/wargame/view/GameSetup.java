@@ -247,7 +247,7 @@ public class GameSetup {
 
     private static void placerUnitesPourJoueur(Player joueur, Plateau plateau, int playerIndex) {
         if (playerIndex >= ZONES_DEPLACEMENT.length) {
-            Logger.log("❌ Trop de joueurs pour les zones prédéfinies !");
+            Logger.log(" Trop de joueurs pour les zones prédéfinies !");
             return;
         }
 
@@ -278,7 +278,7 @@ public class GameSetup {
         }
 
         if (unitIndex < unites.size()) {
-            Logger.log("⚠️ Recherche hors zone pour " + joueur.getName());
+            Logger.log(" Recherche hors zone pour " + joueur.getName());
             for (int row = 0; row < plateau.getRows(); row++) {
                 for (int col = 0; col < plateau.getCols(); col++) {
                     if (unitIndex >= unites.size()) break;
@@ -294,7 +294,7 @@ public class GameSetup {
         }
 
         if (unitIndex < unites.size()) {
-            Logger.log("⚠️ Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
+            Logger.log(" Seulement " + unitIndex + " unités placées sur " + unites.size() + " pour " + joueur.getName());
         }
     }
 

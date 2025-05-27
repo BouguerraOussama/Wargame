@@ -10,8 +10,8 @@ public class Main extends Application {
         primaryStage.setTitle("Wargame - Menu Principal");
         primaryStage.setFullScreen(true);
         primaryStage.setFullScreenExitHint("");
-        primaryStage.setScene(GameMenu.createMenuScene(primaryStage)); // ⬅️ récupère la scène
-        primaryStage.show(); // ⬅️ affiche la fenêtre
+        primaryStage.setScene(GameMenu.createMenuScene(primaryStage)); // récupère la scène
+        primaryStage.show(); //  affiche la fenêtre
     }
 
     public static void main(String[] args) {
